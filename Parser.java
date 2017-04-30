@@ -109,8 +109,6 @@ public class Parser {
         patternList.addAll(Arrays.asList(patterns));
         patternList.addAll(Arrays.asList(Grammar.General.values()));
 
-        List<String> tokens = tokenize(lineContent);
-
         for (Grammar.LinePattern pattern : patternList) {
             Matcher matcher = pattern.getPattern().matcher(lineContent);
             if(matcher.find()) {
@@ -121,11 +119,11 @@ public class Parser {
                     groups.add(matcher.group(i));
                 }
 
-                return new Grammar.LineMeta(indentSize, lineContent, lineIndent, lineNumber, groups, tokens, pattern);
+                return new Grammar.LineMeta(indentSize, lineContent, lineIndent, lineNumber, groups, pattern);
             }
         }
 
-        return new Grammar.LineMeta(indentSize, lineContent, lineIndent, lineNumber, null, tokens,null);
+        return new Grammar.LineMeta(indentSize, lineContent, lineIndent, lineNumber, null,null);
     }
 
     private boolean isDataSection(String line, boolean ignoreSection) {
@@ -142,19 +140,6 @@ public class Parser {
         }
 
         return ignoreSection;
-    }
-
-    private static List<String> tokenize(String content) {
-
-        List<String> tokens = new ArrayList<>();
-
-        StringTokenizer st = new StringTokenizer(content, Utils.DELIMITER);
-
-        while (st.hasMoreElements()) {
-            tokens.add((String) st.nextElement());
-        }
-
-        return tokens;
     }
 
     private void addHeader(Writer writer) {

@@ -15,16 +15,14 @@ public class Grammar {
         public int lineIndent;
         public int lineNumber;
         public List<String> groups;
-        public List<String> tokens;
         public Grammar.LinePattern matchedPattern;
 
-        public LineMeta(int indentSize, String line, int lineIndent, int lineNumber, List<String> groups, List<String> tokens, LinePattern matchedPattern) {
+        public LineMeta(int indentSize, String line, int lineIndent, int lineNumber, List<String> groups, LinePattern matchedPattern) {
             this.indentSize = indentSize;
             this.line = line;
             this.lineIndent = lineIndent;
             this.lineNumber = lineNumber;
             this.groups = groups;
-            this.tokens = tokens;
             this.matchedPattern = matchedPattern;
         }
     }

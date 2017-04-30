@@ -1,3 +1,7 @@
+import java.util.ArrayList;
+import java.util.List;
+import java.util.StringTokenizer;
+
 /**
  * @author m4g4
  * @date 21/04/2017
@@ -47,5 +51,18 @@ public class Utils {
         }
 
         return tmp;
+    }
+
+    public static List<String> tokenize(String line) {
+
+        List<String> tokens = new ArrayList<>();
+
+        StringTokenizer st = new StringTokenizer(line, Utils.DELIMITER);
+
+        while (st.hasMoreElements()) {
+            tokens.add((String) st.nextElement());
+        }
+
+        return tokens;
     }
 }

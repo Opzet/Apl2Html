@@ -160,7 +160,8 @@ public class Writer implements CanProcessLine {
     private static void replaceClassDefinitionSymbols(StateContext c, ProgramData data, Grammar.LineMeta meta) {
         String res = meta.line;
 
-        for (String token : meta.tokens) {
+        List<String> tokens = Utils.tokenize(meta.line);
+        for (String token : tokens) {
 
             ProgramData.Clazz clazz = data.apps.get(c.getModuleName()).classes.get(token);
 
@@ -176,8 +177,10 @@ public class Writer implements CanProcessLine {
 
         String res = meta.line;
 
+        List<String> tokens = Utils.tokenize(meta.line);
+
         ProgramData.Function line;
-        for (String token : meta.tokens) {
+        for (String token : tokens) {
             if (c.getClName() == null) {
                 line = data.apps.get(c.getModuleName()).globalFunctions.get(token);
             } else {
@@ -197,7 +200,8 @@ public class Writer implements CanProcessLine {
 
         String res = meta.line;
 
-        for (String token : meta.tokens) {
+        List<String> tokens = Utils.tokenize(meta.line);
+        for (String token : tokens) {
             Integer line;
 
             boolean classVar = false;
@@ -231,7 +235,8 @@ public class Writer implements CanProcessLine {
 
         String res = meta.line;
 
-        for (String token : meta.tokens) {
+        List<String> tokens = Utils.tokenize(meta.line);
+        for (String token : tokens) {
             ProgramData.Parameter parameter;
 
             boolean classVar = false;
@@ -268,7 +273,8 @@ public class Writer implements CanProcessLine {
 
         Set<String> replacedTokens = new TreeSet<>();
 
-        for (String token : meta.tokens) {
+        List<String> tokens = Utils.tokenize(meta.line);
+        for (String token : tokens) {
             if (replacedTokens.contains(token))
                 continue;
 
@@ -315,8 +321,9 @@ public class Writer implements CanProcessLine {
 
         Set<String> replacedTokens = new TreeSet<>();
 
-        for (int i = 0; i < meta.tokens.size(); ++i) {
-            String token = meta.tokens.get(i);
+        List<String> tokens = Utils.tokenize(meta.line);
+        for (int i = 0; i < tokens.size(); ++i) {
+            String token = tokens.get(i);
             if (replacedTokens.contains(token))
                 continue;
 
