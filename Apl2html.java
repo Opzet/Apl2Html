@@ -34,8 +34,10 @@ public class Apl2html {
     }
 
     private static void parse(String path, int indents) {
-        if(!checkPath(path))
+        if(!checkPath(path)) {
+            System.out.println("Input directory not found!");
             return;
+        }
 
         Parser parser = new Parser(indents);
 
@@ -74,7 +76,7 @@ public class Apl2html {
     }
 
     private static boolean checkPath(String path) {
-        return Files.exists(Paths.get(path));
+        return Files.isDirectory(Paths.get(path));
     }
 
     private static List<Module> getAplModules(String path) {
