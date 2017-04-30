@@ -43,10 +43,6 @@ public class Writer implements CanProcessLine {
             }  else if (Grammar.Application.CLASS.equals(meta.matchedPattern)) {
                 replaceClassDefinitionSymbols(context, data, meta);
                 converted.add(constructCollapser(context, meta.groups.get(2), build(meta)));
-                
-            } else if (Grammar.Application.FUNCTION_DEFINITION.equals(meta.matchedPattern)) {
-                replaceFunctionDefinitionSymbols(context, data, meta);
-                converted.add(constructCollapser(context, meta.groups.get(1), build(meta)));
 
             } else {
                 converted.add(build(meta));
@@ -66,6 +62,20 @@ public class Writer implements CanProcessLine {
 
             } else {
                 converted.add(build(meta));
+            }
+            break;
+
+        case INTERNAL_FUNCTIONS:
+            if (Grammar.Application.FUNCTION_DEFINITION.equals(meta.matchedPattern)) {
+                replaceFunctionDefinitionSymbols(context, data, meta);
+                converted.add(constructCollapser(context, meta.groups.get(1), build(meta)));
+            }
+            break;
+
+        case EXTERNAL_FUNCTIONS:
+            if (Grammar.Application.FUNCTION_DEFINITION.equals(meta.matchedPattern)) {
+                replaceExternalFunctionDefinitionSymbols(context, data, meta);
+                converted.add(constructCollapser(context, meta.groups.get(1), build(meta)));
             }
             break;
 
@@ -163,10 +173,28 @@ public class Writer implements CanProcessLine {
         List<String> tokens = Utils.tokenize(meta.line);
         for (String token : tokens) {
 
-            ProgramData.Clazz clazz = data.apps.get(c.getModuleName()).classes.get(token);
+            ProgramData.Clazz clazz = data.modules.get(c.getModuleName()).classes.get(token);
 
             if (clazz != null) {
                 res = res.replaceFirst(token, "<a href='' class='class_def'>" + token + "</a>");
+            }
+        }
+
+        meta.line = res;
+    }
+
+    private static void replaceExternalFunctionDefinitionSymbols(StateContext c, ProgramData data, Grammar.LineMeta meta) {
+
+        String res = meta.line;
+
+        List<String> tokens = Utils.tokenize(meta.line);
+
+        ProgramData.Function line;
+        for (String token : tokens) {
+            line = data.externalFunctions.get(token);
+
+            if (line != null) {
+                res = res.replaceFirst(token, "<a href='' class='function_def external'>" + token + "</a>");
             }
         }
 
@@ -182,9 +210,9 @@ public class Writer implements CanProcessLine {
         ProgramData.Function line;
         for (String token : tokens) {
             if (c.getClName() == null) {
-                line = data.apps.get(c.getModuleName()).globalFunctions.get(token);
+                line = data.modules.get(c.getModuleName()).internalFunctions.get(token);
             } else {
-                line = data.apps.get(c.getModuleName()).classes.get(c.getClName())
+                line = data.modules.get(c.getModuleName()).classes.get(c.getClName())
                         .functions.get(token);
             }
 
@@ -207,14 +235,14 @@ public class Writer implements CanProcessLine {
             boolean classVar = false;
             if (c.getClName() == null) {
                 // TODO if (c.getFnName() == null)
-                line = data.apps.get(c.getModuleName()).globalFunctions.get(c.getFnName()).localVars.get(token);
+                line = data.modules.get(c.getModuleName()).internalFunctions.get(c.getFnName()).localVars.get(token);
             } else {
                 if (c.getFnName() == null) {
-                    line = data.apps.get(c.getModuleName()).classes.get(c.getClName())
+                    line = data.modules.get(c.getModuleName()).classes.get(c.getClName())
                             .vars.get(token);
                     classVar = true;
                 } else {
-                    line = data.apps.get(c.getModuleName()).classes.get(c.getClName()).functions.get(c.getFnName())
+                    line = data.modules.get(c.getModuleName()).classes.get(c.getClName()).functions.get(c.getFnName())
                             .localVars.get(token);
                 }
             }
@@ -242,15 +270,15 @@ public class Writer implements CanProcessLine {
             boolean classVar = false;
             if (c.getClName() == null) {
                 // TODO if (c.getFnName() == null)
-                parameter = data.apps.get(c.getModuleName()).globalFunctions.get(c.getFnName())
+                parameter = data.modules.get(c.getModuleName()).internalFunctions.get(c.getFnName())
                         .parameters.get(token);
             } else {
                 if (c.getFnName() == null) {
-                    parameter = data.apps.get(c.getModuleName()).classes.get(c.getClName())
+                    parameter = data.modules.get(c.getModuleName()).classes.get(c.getClName())
                             .parameters.get(token);
                     classVar = true;
                 } else {
-                    parameter = data.apps.get(c.getModuleName()).classes.get(c.getClName()).functions.get(c.getFnName())
+                    parameter = data.modules.get(c.getModuleName()).classes.get(c.getClName()).functions.get(c.getFnName())
                             .parameters.get(token);
                 }
             }
@@ -285,16 +313,16 @@ public class Writer implements CanProcessLine {
 
             if (c.getClName() == null) {
                 // TODO if (c.getFnName() == null)
-                line = data.apps.get(c.getModuleName()).globalFunctions.get(c.getFnName()).localVars.get(token);
+                line = data.modules.get(c.getModuleName()).internalFunctions.get(c.getFnName()).localVars.get(token);
                 symbolContext.setFnName(c.getFnName());
             } else {
                 symbolContext.setClName(c.getClName());
                 if (c.getFnName() != null) {
-                    line = data.apps.get(c.getModuleName()).classes.get(c.getClName()).functions.get(c.getFnName())
+                    line = data.modules.get(c.getModuleName()).classes.get(c.getClName()).functions.get(c.getFnName())
                             .localVars.get(token);
                 }
                 if (line == null) {
-                    line = data.apps.get(c.getModuleName()).classes.get(c.getClName())
+                    line = data.modules.get(c.getModuleName()).classes.get(c.getClName())
                             .vars.get(token);
                     classVar = true;
                 } else
@@ -333,16 +361,16 @@ public class Writer implements CanProcessLine {
             symbolContext.setModuleName(c.getModuleName());
             if (c.getClName() == null) {
                 // TODO if (c.getFnName() == null)
-                parameter = data.apps.get(c.getModuleName()).globalFunctions.get(c.getFnName()).parameters.get(token);
+                parameter = data.modules.get(c.getModuleName()).internalFunctions.get(c.getFnName()).parameters.get(token);
                 symbolContext.setFnName(c.getFnName());
             } else {
                 symbolContext.setClName(c.getClName());
                 if (c.getFnName() != null) {
-                    parameter = data.apps.get(c.getModuleName()).classes.get(c.getClName()).functions.get(c.getFnName())
+                    parameter = data.modules.get(c.getModuleName()).classes.get(c.getClName()).functions.get(c.getFnName())
                             .parameters.get(token);
                 }
                 if (parameter == null) {
-                    parameter = data.apps.get(c.getModuleName()).classes.get(c.getClName())
+                    parameter = data.modules.get(c.getModuleName()).classes.get(c.getClName())
                             .parameters.get(token);
                     classVar = true;
                 } else

@@ -28,9 +28,11 @@ public enum State {
         @Override
         public State getNewState (StateContext context, Grammar.LineMeta meta) {
 
-            if (Grammar.Application.FUNCTION_DEFINITION.equals(meta.matchedPattern)) {
-                context.setFnName(meta.groups.get(1));
-                return FUNCTION_DEFINITION;
+            if (Grammar.Application.INTERNAL_FUNCTIONS.equals(meta.matchedPattern)) {
+                return INTERNAL_FUNCTIONS;
+
+            } else if (Grammar.Application.EXTERNAL_FUNCTIONS.equals(meta.matchedPattern)) {
+                return EXTERNAL_FUNCTIONS;
 
             } else if (Grammar.Application.CLASS.equals(meta.matchedPattern)) {
                 context.setClName(meta.groups.get(2));
@@ -46,6 +48,32 @@ public enum State {
         @Override
         public void closeScope(StateContext context) {
             context.setModuleName(null);
+        }
+    },
+
+    INTERNAL_FUNCTIONS(Grammar.Application.values()) {
+        @Override
+        public State getNewState (StateContext context, Grammar.LineMeta meta) {
+
+            if (Grammar.Application.FUNCTION_DEFINITION.equals(meta.matchedPattern)) {
+                context.setFnName(meta.groups.get(1));
+                return FUNCTION_DEFINITION;
+            }
+
+            return INTERNAL_FUNCTIONS;
+        }
+    },
+
+    EXTERNAL_FUNCTIONS(Grammar.Application.values()) {
+        @Override
+        public State getNewState (StateContext context, Grammar.LineMeta meta) {
+
+            if (Grammar.Application.FUNCTION_DEFINITION.equals(meta.matchedPattern)) {
+                context.setFnName(meta.groups.get(1));
+                return FUNCTION_DEFINITION;
+            }
+
+            return EXTERNAL_FUNCTIONS;
         }
     },
 

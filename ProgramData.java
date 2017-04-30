@@ -8,12 +8,12 @@ import java.util.Map;
  */
 public class ProgramData {
 
-    public static class Application {
-        public final Map<String, Function> globalFunctions;
+    public static class Module {
+        public final Map<String, Function> internalFunctions;
         public final Map<String, Clazz> classes;
 
-        public Application() {
-            globalFunctions = new HashMap<>();
+        public Module() {
+            internalFunctions = new HashMap<>();
             classes = new HashMap<>();
         }
     }
@@ -52,9 +52,11 @@ public class ProgramData {
         }
     }
 
-    public final Map<String, Application> apps;
+    public final Map<String, Module> modules;
+    public final Map<String, Function> externalFunctions;
 
     public ProgramData() {
-        apps = new HashMap<>();
+        modules = new HashMap<>();
+        externalFunctions = new HashMap<>();
     }
 }

@@ -53,6 +53,8 @@ public class Grammar {
 
     public enum Application implements LinePattern {
         COLLAPSE_ONLY("(^Formats|^Window Defaults|^Design-time Settings)"),
+        INTERNAL_FUNCTIONS("^Internal Functions"),
+        EXTERNAL_FUNCTIONS("^External Functions"),
         FUNCTION_DEFINITION("^Function: ([_A-Za-z\\d]+)"),
         CLASS("(^Form Window:|^Functional Class:|^Dialog Box:) ([_A-Za-z\\d]+)");
 
