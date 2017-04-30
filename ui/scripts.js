@@ -1,6 +1,6 @@
 (function ($) {
     $(window).on("load", function(){
-      $("a[href^='#']").on('click', function(e) {
+      $("a").on('click', function(e) {
     
        // prevent default anchor click behavior
        e.preventDefault();
