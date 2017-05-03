@@ -68,12 +68,19 @@ public enum State {
         @Override
         public State getNewState (StateContext context, Grammar.LineMeta meta) {
 
-            if (Grammar.Application.FUNCTION_DEFINITION.equals(meta.matchedPattern)) {
-                context.setFnName(meta.groups.get(1));
-                return FUNCTION_DEFINITION;
+            if (Grammar.Application.LIBRARY_NAME.equals(meta.matchedPattern)) {
+                context.setExternalLibName(meta.groups.get(1));
+                return EXTERNAL_LIBRARY;
             }
 
             return EXTERNAL_FUNCTIONS;
+        }
+    },
+
+    EXTERNAL_LIBRARY(Grammar.Application.values()) {
+        @Override
+        public void closeScope(StateContext context) {
+            context.setExternalLibName(null);
         }
     },
 
@@ -121,9 +128,39 @@ public enum State {
         }
     },
 
-    VARIABLES(Grammar.FunctionDefinition.values()),
+    VARIABLES(Grammar.FunctionDefinition.values()) {
+        @Override
+        public State getNewState (StateContext context, Grammar.LineMeta meta){
 
-    PARAMETERS(Grammar.FunctionDefinition.values()),
+            if (Grammar.FunctionDefinition.FUNCTIONAL_VAR.equals(meta.matchedPattern)) {
+                context.setCustomData(meta.groups.get(1));
+            }
+
+            return VARIABLES;
+        }
+
+        @Override
+        public void closeScope(StateContext context) {
+            context.setCustomData(null);
+        }
+    },
+
+    PARAMETERS(Grammar.FunctionDefinition.values()) {
+        @Override
+        public State getNewState (StateContext context, Grammar.LineMeta meta){
+
+            if (Grammar.FunctionDefinition.FUNCTIONAL_VAR.equals(meta.matchedPattern)) {
+                context.setCustomData(meta.groups.get(1));
+            }
+
+            return PARAMETERS;
+        }
+
+        @Override
+        public void closeScope(StateContext context) {
+            context.setCustomData(null);
+        }
+    },
 
     FUNCTION_BODY(Grammar.FunctionDefinition.values()),
 

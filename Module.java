@@ -43,6 +43,6 @@ public class Module {
     public static boolean isFileAplModule(Path path) {
         List<String> pathTokens = Arrays.asList(path.toAbsolutePath().toString().split("\\.")); // TODO fixme
 
-        return pathTokens.size() == 2 && pathTokens.get(1).equals(APL_EXT);
+        return pathTokens.size() == 2 && pathTokens.get(1).equalsIgnoreCase(APL_EXT);
     }
 }

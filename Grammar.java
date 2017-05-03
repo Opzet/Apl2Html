@@ -55,8 +55,9 @@ public class Grammar {
         COLLAPSE_ONLY("(^Formats|^Window Defaults|^Design-time Settings)"),
         INTERNAL_FUNCTIONS("^Internal Functions"),
         EXTERNAL_FUNCTIONS("^External Functions"),
-        FUNCTION_DEFINITION("^Function: ([_A-Za-z\\d]+)"),
-        CLASS("(^Form Window:|^Functional Class:|^Dialog Box:) ([_A-Za-z\\d]+)");
+        LIBRARY_NAME("^Library name: ([_\\w]+)"),
+        FUNCTION_DEFINITION("^Function: ([_\\w]+)"),
+        CLASS("(^Form Window:|^Functional Class:|^Dialog Box:) ([_\\w]+)");
 
         private final Pattern pattern;
 
@@ -71,7 +72,7 @@ public class Grammar {
     }
 
     public enum Class implements LinePattern {
-        FUNCTION_DEFINITION("^Function: ([_A-Za-z\\d]+)"),
+        FUNCTION_DEFINITION("^Function: ([_\\w]+)"),
         VARIABLES("^Window Variables"),
         PARAMETERS("^Window Parameters");
 
@@ -89,7 +90,8 @@ public class Grammar {
 
     public enum FunctionDefinition implements LinePattern {
         LOCAL_VARIABLES("^Local variables"),
-        VARIABLE("^(Receive )*([_A-Za-z\\d/]+[ _A-Za-z\\d/]*) *: +([_A-Za-z\\d]+).*"),
+        FUNCTIONAL_VAR("^FunctionalVar: +([_\\w]+).*"),
+        VARIABLE("^(Receive ){0,1}([_\\w/]+[ _\\w/]*) *: +([_\\w]+).*"),
         PARAMETERS("^Parameters"),
         ACTIONS("^Actions");
 

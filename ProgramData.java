@@ -20,7 +20,7 @@ public class ProgramData {
 
     public static class Clazz {
         public final Map<String, Function> functions;
-        public final Map<String, Integer> vars;
+        public final Map<String, Var> vars;
         public final Map<String, Parameter> parameters;
 
         public Clazz() {
@@ -33,7 +33,7 @@ public class ProgramData {
     public static class Function {
         public final int lineNumber;
         public final Map<String, Parameter> parameters;
-        public final Map<String, Integer> localVars;
+        public final Map<String, Var> localVars;
 
         public Function(int lineNumber) {
             this.lineNumber = lineNumber;
@@ -42,12 +42,19 @@ public class ProgramData {
         }
     }
 
-    public static class Parameter {
-        public final int lineNumber;
+    public static class Var {
+        public final String type;
+
+        public Var(String type) {
+            this.type = type;
+        }
+    }
+
+    public static class Parameter extends Var {
         public boolean ret;
 
-        public Parameter(int lineNumber, boolean ret) {
-            this.lineNumber = lineNumber;
+        public Parameter(String type, boolean ret) {
+            super(type);
             this.ret = ret;
         }
     }

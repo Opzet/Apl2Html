@@ -230,24 +230,24 @@ public class Writer implements CanProcessLine {
 
         List<String> tokens = Utils.tokenize(meta.line);
         for (String token : tokens) {
-            Integer line;
+            ProgramData.Var var;
 
             boolean classVar = false;
             if (c.getClName() == null) {
                 // TODO if (c.getFnName() == null)
-                line = data.modules.get(c.getModuleName()).internalFunctions.get(c.getFnName()).localVars.get(token);
+                var = data.modules.get(c.getModuleName()).internalFunctions.get(c.getFnName()).localVars.get(token);
             } else {
                 if (c.getFnName() == null) {
-                    line = data.modules.get(c.getModuleName()).classes.get(c.getClName())
+                    var = data.modules.get(c.getModuleName()).classes.get(c.getClName())
                             .vars.get(token);
                     classVar = true;
                 } else {
-                    line = data.modules.get(c.getModuleName()).classes.get(c.getClName()).functions.get(c.getFnName())
+                    var = data.modules.get(c.getModuleName()).classes.get(c.getClName()).functions.get(c.getFnName())
                             .localVars.get(token);
                 }
             }
 
-            if (line != null) {
+            if (var != null) {
                 String classParam = classVar ? "cl" : "";
 
                 res = res.replaceFirst(token, "<a id='" +
@@ -306,30 +306,30 @@ public class Writer implements CanProcessLine {
             if (replacedTokens.contains(token))
                 continue;
 
-            Integer line = null;
+            ProgramData.Var var = null;
             boolean classVar = false;
             StateContext symbolContext = new StateContext();
             symbolContext.setModuleName(c.getModuleName());
 
             if (c.getClName() == null) {
                 // TODO if (c.getFnName() == null)
-                line = data.modules.get(c.getModuleName()).internalFunctions.get(c.getFnName()).localVars.get(token);
+                var = data.modules.get(c.getModuleName()).internalFunctions.get(c.getFnName()).localVars.get(token);
                 symbolContext.setFnName(c.getFnName());
             } else {
                 symbolContext.setClName(c.getClName());
                 if (c.getFnName() != null) {
-                    line = data.modules.get(c.getModuleName()).classes.get(c.getClName()).functions.get(c.getFnName())
+                    var = data.modules.get(c.getModuleName()).classes.get(c.getClName()).functions.get(c.getFnName())
                             .localVars.get(token);
                 }
-                if (line == null) {
-                    line = data.modules.get(c.getModuleName()).classes.get(c.getClName())
+                if (var == null) {
+                    var = data.modules.get(c.getModuleName()).classes.get(c.getClName())
                             .vars.get(token);
                     classVar = true;
                 } else
                     symbolContext.setFnName(c.getFnName());
             }
 
-            if (line != null) {
+            if (var != null) {
                 String classParam = classVar ? "cl" : "";
 
                 res = Utils.replaceToken(res, token, "<a href='" +

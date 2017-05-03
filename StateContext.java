@@ -4,8 +4,10 @@
  */
 public class StateContext {
     private String moduleName;
+    private String externalLibName;
     private String clName;
     private String fnName;
+    private Object customData;
 
     private State currentState;
 
@@ -15,6 +17,14 @@ public class StateContext {
 
     public void setModuleName(String moduleName) {
         this.moduleName = moduleName;
+    }
+
+    public String getExternalLibName() {
+        return externalLibName;
+    }
+
+    public void setExternalLibName(String externalLibName) {
+        this.externalLibName = externalLibName;
     }
 
     public String getClName() {
@@ -39,5 +49,13 @@ public class StateContext {
 
     public void setCurrentState(State currentState) {
         this.currentState = currentState;
+    }
+
+    public Object getCustomData() {
+        return customData;
+    }
+
+    public void setCustomData(Object customData) {
+        this.customData = customData;
     }
 }

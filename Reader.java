@@ -32,7 +32,7 @@ public class Reader implements CanProcessLine {
                 break;
             }
 
-        case EXTERNAL_FUNCTIONS:
+        case EXTERNAL_LIBRARY:
             if (Grammar.Application.FUNCTION_DEFINITION.equals(meta.matchedPattern)) {
                 data.externalFunctions.put(meta.groups.get(1), new ProgramData.Function(meta.lineNumber));
                 break;
@@ -47,17 +47,34 @@ public class Reader implements CanProcessLine {
 
         case VARIABLES:
             if (Grammar.FunctionDefinition.VARIABLE.equals(meta.matchedPattern)) {
+
+                String type;
+                String name;
+                if (context.getCustomData() != null) {
+                    type = meta.groups.get(3);
+                    name = (String) context.getCustomData();
+                    context.setCustomData(null); // TODO terrible hack
+                } else {
+                    type = meta.groups.get(2);
+                    name = meta.groups.get(3);
+                }
+
                 if (context.getClName() == null) {
                     if (context.getFnName() != null) {
-                        data.modules.get(context.getModuleName()).internalFunctions.get(context.getFnName())
-                                .localVars.put(meta.groups.get(3), meta.lineNumber);
+                        if (context.getExternalLibName() != null) {
+                            data.externalFunctions.get(context.getFnName()).localVars.put(name, new ProgramData.Var(type));
+                        } else {
+                            data.modules.get(context.getModuleName()).internalFunctions.get(context.getFnName())
+                                    .localVars.put(name, new ProgramData.Var(type));
+                        }
                     }
                 } else {
                     if (context.getFnName() == null) {
                         data.modules.get(context.getModuleName()).classes.get(context.getClName())
-                                .vars.put(meta.groups.get(3), meta.lineNumber);
+                                .vars.put(name, new ProgramData.Var(type));
                     } else {
-                        data.modules.get(context.getModuleName()).classes.get(context.getClName()).functions.get(context.getFnName()).localVars.put(meta.groups.get(3), meta.lineNumber);
+                        data.modules.get(context.getModuleName()).classes.get(context.getClName()).functions.get(context.getFnName())
+                                .localVars.put(name, new ProgramData.Var(type));
                     }
                 }
             }
@@ -65,21 +82,34 @@ public class Reader implements CanProcessLine {
 
         case PARAMETERS:
             if (Grammar.FunctionDefinition.VARIABLE.equals(meta.matchedPattern)) {
+
+                String type;
+                String name;
+                if (context.getCustomData() != null) {
+                    type = meta.groups.get(3);
+                    name = (String) context.getCustomData();
+                    context.setCustomData(null); // TODO terrible hack
+                } else {
+                    type = meta.groups.get(2);
+                    name = meta.groups.get(3);
+                }
+
                 if (context.getClName() == null) {
                     if (context.getFnName() != null) {
-                        data.modules.get(context.getModuleName()).internalFunctions.get(context.getFnName()).
-                                parameters.put(meta.groups.get(3),
-                                new ProgramData.Parameter(meta.lineNumber, meta.groups.get(1) != null));
+                        if (context.getExternalLibName() != null) {
+                            data.externalFunctions.get(context.getFnName()).localVars.put(name, new ProgramData.Var(type));
+                        } else {
+                            data.modules.get(context.getModuleName()).internalFunctions.get(context.getFnName()).
+                                    parameters.put(name, new ProgramData.Parameter(type, meta.groups.get(1) != null));
+                        }
                     }
                 } else {
                     if (context.getFnName() == null) {
                         data.modules.get(context.getModuleName()).classes.get(context.getClName())
-                                .parameters.put(meta.groups.get(3),
-                                new ProgramData.Parameter(meta.lineNumber, meta.groups.get(1) != null));
+                                .parameters.put(name, new ProgramData.Parameter(type, meta.groups.get(1) != null));
                     } else {
                         data.modules.get(context.getModuleName()).classes.get(context.getClName()).functions.get(context.getFnName())
-                                .parameters.put(meta.groups.get(3),
-                                new ProgramData.Parameter(meta.lineNumber, meta.groups.get(1) != null));
+                                .parameters.put(name, new ProgramData.Parameter(type, meta.groups.get(1) != null));
                     }
                 }
             }
