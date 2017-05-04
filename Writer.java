@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
@@ -37,45 +38,32 @@ public class Writer implements CanProcessLine {
             break;
 
         case APPLICATION:
-            if (Grammar.Application.COLLAPSE_ONLY.equals(meta.matchedPattern)) {
-                converted.add(constructCollapser(context, meta.groups.get(1), build(meta)));
-
-            }  else if (Grammar.Application.CLASS.equals(meta.matchedPattern)) {
+            if (Grammar.Application.CLASS.equals(meta.matchedPattern)) {
                 replaceClassDefinitionSymbols(context, data, meta);
-                converted.add(constructCollapser(context, meta.groups.get(2), build(meta)));
-
-            } else {
-                converted.add(build(meta));
             }
+
+            converted.add(build(meta));
             break;
 
         case CLASS:
             if (Grammar.Class.FUNCTION_DEFINITION.equals(meta.matchedPattern)) {
                 replaceFunctionDefinitionSymbols(context, data, meta);
-                converted.add(constructCollapser(context, meta.groups.get(1), build(meta)));
-
-            } else if (Grammar.Class.VARIABLES.equals(meta.matchedPattern)) {
-                converted.add(build(meta));
-
-            } else if (Grammar.Class.PARAMETERS.equals(meta.matchedPattern)) {
-                converted.add(build(meta));
-
-            } else {
-                converted.add(build(meta));
             }
+
+            converted.add(build(meta));
             break;
 
         case INTERNAL_FUNCTIONS:
             if (Grammar.Application.FUNCTION_DEFINITION.equals(meta.matchedPattern)) {
                 replaceFunctionDefinitionSymbols(context, data, meta);
-                converted.add(constructCollapser(context, meta.groups.get(1), build(meta)));
+                converted.add(build(meta));
             }
             break;
 
         case EXTERNAL_FUNCTIONS:
             if (Grammar.Application.FUNCTION_DEFINITION.equals(meta.matchedPattern)) {
                 replaceExternalFunctionDefinitionSymbols(context, data, meta);
-                converted.add(constructCollapser(context, meta.groups.get(1), build(meta)));
+                converted.add(build(meta));
             }
             break;
 
@@ -85,13 +73,12 @@ public class Writer implements CanProcessLine {
             break;
 
         case PARAMETERS:
-            replaceParameterDefinitions(context, data, meta);
+            replaceVarDefinitions(context, data, meta);
             converted.add(build(meta));
             break;
 
         case FUNCTION_BODY:
-            replaceVarsSymbols(context, data, meta);
-            replaceParametersSymbols(context, data, meta);
+            replaceSymbols(context, data, meta);
 
             converted.add(build(meta));
             break;
@@ -104,12 +91,6 @@ public class Writer implements CanProcessLine {
 
     @Override
     public void closeScope(StateContext context) {
-        switch (context.getCurrentState()) {
-        case COLLAPSED:
-        case CLASS:
-        case FUNCTION_DEFINITION:
-            converted.add("</div>"); // end of collapsed
-        }
     }
 
     public List<String> getConverted() {
@@ -161,22 +142,16 @@ public class Writer implements CanProcessLine {
         return line.replace("\t", String.join("", Collections.nCopies(meta.indentSize, " ")));
     }
 
-    private static String constructCollapser(StateContext context, String id, String line) {
-        String fullId = "collapse_" + Utils.constructSymbolId(context.getClName(), context.getFnName(), id);
-        return line + "<i class='glyphicon glyphicon-plus' data-toggle='collapse' href='#" + fullId + "'></i>" +
-                "<div class='collapse' id='" + fullId + "'>";
-    }
-
     private static void replaceClassDefinitionSymbols(StateContext c, ProgramData data, Grammar.LineMeta meta) {
         String res = meta.line;
 
-        List<String> tokens = Utils.tokenize(meta.line);
-        for (String token : tokens) {
+        List<Utils.Token> tokens = Utils.tokenize(meta.line);
+        for (Utils.Token token : tokens) {
 
-            ProgramData.Clazz clazz = data.modules.get(c.getModuleName()).classes.get(token);
+            ProgramData.Clazz clazz = data.modules.get(c.getModuleName()).classes.get(token.getToken());
 
             if (clazz != null) {
-                res = res.replaceFirst(token, "<a href='' class='class_def'>" + token + "</a>");
+                res = res.replaceFirst(token.getToken(), "<a id= '"+Utils.constructSymbolId(token.getToken())+"' class='class_def'>" + token.getToken() + "</a>");
             }
         }
 
@@ -187,14 +162,14 @@ public class Writer implements CanProcessLine {
 
         String res = meta.line;
 
-        List<String> tokens = Utils.tokenize(meta.line);
+        List<Utils.Token> tokens = Utils.tokenize(meta.line);
 
         ProgramData.Function line;
-        for (String token : tokens) {
-            line = data.externalFunctions.get(token);
+        for (Utils.Token token : tokens) {
+            line = data.externalFunctions.get(token.getToken());
 
             if (line != null) {
-                res = res.replaceFirst(token, "<a href='' class='function_def external'>" + token + "</a>");
+                res = res.replaceFirst(token.getToken(), "<a href='' class='function_def external'>" + token.getToken() + "</a>");
             }
         }
 
@@ -205,19 +180,19 @@ public class Writer implements CanProcessLine {
 
         String res = meta.line;
 
-        List<String> tokens = Utils.tokenize(meta.line);
+        List<Utils.Token> tokens = Utils.tokenize(meta.line);
 
         ProgramData.Function line;
-        for (String token : tokens) {
+        for (Utils.Token token : tokens) {
             if (c.getClName() == null) {
-                line = data.modules.get(c.getModuleName()).internalFunctions.get(token);
+                line = data.modules.get(c.getModuleName()).internalFunctions.get(token.getToken());
             } else {
                 line = data.modules.get(c.getModuleName()).classes.get(c.getClName())
-                        .functions.get(token);
+                        .functions.get(token.getToken());
             }
 
             if (line != null) {
-                res = res.replaceFirst(token, "<a href='' class='function_def'>" + token + "</a>");
+                res = res.replaceFirst(token.getToken(), "<a id='"+Utils.constructSymbolId(c.getClName(), token.getToken())+"' class='function_def'>" + token.getToken() + "</a>");
             }
         }
 
@@ -228,167 +203,164 @@ public class Writer implements CanProcessLine {
 
         String res = meta.line;
 
-        List<String> tokens = Utils.tokenize(meta.line);
-        for (String token : tokens) {
+        List<Utils.Token> tokens = Utils.tokenize(meta.line);
+        for (Utils.Token token : tokens) {
             ProgramData.Var var;
 
             boolean classVar = false;
             if (c.getClName() == null) {
-                // TODO if (c.getFnName() == null)
-                var = data.modules.get(c.getModuleName()).internalFunctions.get(c.getFnName()).localVars.get(token);
+                var = data.modules.get(c.getModuleName()).internalFunctions.get(c.getFnName())
+                        .vars.get(token.getToken());
             } else {
                 if (c.getFnName() == null) {
                     var = data.modules.get(c.getModuleName()).classes.get(c.getClName())
-                            .vars.get(token);
+                            .vars.get(token.getToken());
                     classVar = true;
                 } else {
                     var = data.modules.get(c.getModuleName()).classes.get(c.getClName()).functions.get(c.getFnName())
-                            .localVars.get(token);
+                            .vars.get(token.getToken());
                 }
             }
 
             if (var != null) {
                 String classParam = classVar ? "cl" : "";
+                String paramVar = var.parameter ? "parameter_def" : "var_def";
 
-                res = res.replaceFirst(token, "<a id='" +
-                        Utils.constructSymbolId(c.getClName(), c.getFnName(), token) +
-                        "' class='var_def "+classParam+"'>" + token + "</a>");
+                res = res.replaceAll(token.getToken(), "<a id='" +
+                        Utils.constructSymbolId(c.getClName(), c.getFnName(), token.getToken()) +
+                        "' class='"+paramVar+" "+classParam+"'>" + token.getToken() + "</a>");
             }
         }
 
         meta.line = res;
     }
 
-    private static void replaceParameterDefinitions(StateContext c, ProgramData data, Grammar.LineMeta meta) {
+    private static void replaceSymbols(StateContext c, ProgramData data, Grammar.LineMeta meta) {
 
-        String res = meta.line;
-
-        List<String> tokens = Utils.tokenize(meta.line);
-        for (String token : tokens) {
-            ProgramData.Parameter parameter;
-
-            boolean classVar = false;
-            if (c.getClName() == null) {
-                // TODO if (c.getFnName() == null)
-                parameter = data.modules.get(c.getModuleName()).internalFunctions.get(c.getFnName())
-                        .parameters.get(token);
-            } else {
-                if (c.getFnName() == null) {
-                    parameter = data.modules.get(c.getModuleName()).classes.get(c.getClName())
-                            .parameters.get(token);
-                    classVar = true;
-                } else {
-                    parameter = data.modules.get(c.getModuleName()).classes.get(c.getClName()).functions.get(c.getFnName())
-                            .parameters.get(token);
-                }
-            }
-
-            if (parameter != null) {
-                String classParam = classVar ? "cl" : "";
-
-                res = res.replaceAll(token, "<a id='" +
-                        Utils.constructSymbolId(c.getClName(), c.getFnName(), token) +
-                        "' class='parameter_def "+classParam+"'>" + token + "</a>");
-            }
-        }
-
-        meta.line = res;
-    }
-
-    private static void replaceVarsSymbols(StateContext c, ProgramData data, Grammar.LineMeta meta) {
-
-        String res = meta.line;
-
-        Set<String> replacedTokens = new TreeSet<>();
-
-        List<String> tokens = Utils.tokenize(meta.line);
-        for (String token : tokens) {
-            if (replacedTokens.contains(token))
-                continue;
-
-            ProgramData.Var var = null;
-            boolean classVar = false;
-            StateContext symbolContext = new StateContext();
-            symbolContext.setModuleName(c.getModuleName());
-
-            if (c.getClName() == null) {
-                // TODO if (c.getFnName() == null)
-                var = data.modules.get(c.getModuleName()).internalFunctions.get(c.getFnName()).localVars.get(token);
-                symbolContext.setFnName(c.getFnName());
-            } else {
-                symbolContext.setClName(c.getClName());
-                if (c.getFnName() != null) {
-                    var = data.modules.get(c.getModuleName()).classes.get(c.getClName()).functions.get(c.getFnName())
-                            .localVars.get(token);
-                }
-                if (var == null) {
-                    var = data.modules.get(c.getModuleName()).classes.get(c.getClName())
-                            .vars.get(token);
-                    classVar = true;
-                } else
-                    symbolContext.setFnName(c.getFnName());
-            }
-
-            if (var != null) {
-                String classParam = classVar ? "cl" : "";
-
-                res = Utils.replaceToken(res, token, "<a href='" +
-                                Utils.constructRefId(symbolContext.getModuleName(), symbolContext.getClName(), symbolContext.getFnName(), token) +
-                                "' class='var " +classParam+"'>" + token + "</a>");
-
-                replacedTokens.add(token);
-            }
-        }
-
-        meta.line = res;
-    }
-
-    private static void replaceParametersSymbols(StateContext c, ProgramData data, Grammar.LineMeta meta) {
-
-        String res = meta.line;
-
-        Set<String> replacedTokens = new TreeSet<>();
-
-        List<String> tokens = Utils.tokenize(meta.line);
+        List<Utils.Token> tokens = Utils.tokenize(meta.line);
         for (int i = 0; i < tokens.size(); ++i) {
-            String token = tokens.get(i);
-            if (replacedTokens.contains(token))
+            Utils.Token token = tokens.get(i);
+
+            SymbolData symbolData = null;
+            StateContext symbolContext = c;
+            if (!token.getRightChar().equals('.')) {
+                symbolData = findVariable(symbolContext, data, token.getToken());
+                if (symbolData == null)
+                    symbolData = findFunction(symbolContext, data, token.getToken());
+
+                if (symbolData !=null) {
+                    replaceToken(symbolData, tokens, i, meta);
+                }
+
                 continue;
 
-            ProgramData.Parameter parameter = null;
-            boolean classVar = false;
-            StateContext symbolContext = new StateContext();
-            symbolContext.setModuleName(c.getModuleName());
-            if (c.getClName() == null) {
-                // TODO if (c.getFnName() == null)
-                parameter = data.modules.get(c.getModuleName()).internalFunctions.get(c.getFnName()).parameters.get(token);
-                symbolContext.setFnName(c.getFnName());
             } else {
-                symbolContext.setClName(c.getClName());
-                if (c.getFnName() != null) {
-                    parameter = data.modules.get(c.getModuleName()).classes.get(c.getClName()).functions.get(c.getFnName())
-                            .parameters.get(token);
+                symbolData = findVariable(symbolContext, data, token.getToken());
+                if (symbolData == null)
+                    continue; // not found
+                else {
+                    replaceToken(symbolData, tokens, i, meta);
                 }
-                if (parameter == null) {
-                    parameter = data.modules.get(c.getModuleName()).classes.get(c.getClName())
-                            .parameters.get(token);
-                    classVar = true;
-                } else
-                    symbolContext.setFnName(c.getFnName());
             }
 
-            if (parameter != null) {
-                String returnParam = parameter.ret ? "ret" : "";
-                String classParam = classVar ? "cl" : "";
+            ProgramData.Var var = (ProgramData.Var) symbolData.getSymbol();
+            SymbolData classData = findClass(symbolContext, data, var.type);
 
-                res = Utils.replaceToken(res, token, "<a href='" +
-                        Utils.constructRefId(symbolContext.getModuleName(), symbolContext.getClName(), symbolContext.getFnName(), token) +
-                        "' class='parameter "+ returnParam +" "+classParam+"'>" + token + "</a>");
+            if (classData == null)
+                continue;
 
-                replacedTokens.add(token);
+            symbolContext = new StateContext();
+            symbolContext.setModuleName(classData.getModuleName());
+            symbolContext.setClName(classData.getClassName());
+        }
+    }
+
+    private static void replaceToken(SymbolData symbolData, List<Utils.Token> tokens, int tokenNumber, Grammar.LineMeta meta) {
+        StringBuilder clazz = new StringBuilder();
+        String id = null;
+        if ((symbolData.getSymbol() instanceof ProgramData.Var)) {
+            ProgramData.Var v = (ProgramData.Var) symbolData.getSymbol();
+            clazz.append(v.parameter ? "parameter " : "var ");
+            clazz.append(v.ret ? "ret " : "");
+
+            id = Utils.constructRefId(symbolData.getModuleName(), symbolData.getClassName(), symbolData.getFunctionName(), tokens.get(tokenNumber).getToken());
+        } else if ((symbolData.getSymbol() instanceof ProgramData.Function)) {
+            clazz.append("function ");
+            id = Utils.constructRefId(symbolData.getModuleName(), symbolData.getClassName(), null, tokens.get(tokenNumber).getToken());
+        }
+
+        clazz.append(symbolData.getFunctionName() == null ? "cl " : "");
+
+        meta.line = Utils.replaceToken(meta.line, tokens, tokenNumber, "<a href='" + id + "' class='"+clazz+"'>" + tokens.get(tokenNumber).getToken() + "</a>");
+
+    }
+
+    private static SymbolData findVariable(StateContext c, ProgramData data, String symbol) {
+
+        ProgramData.Var var = null;
+        if (c.getClName() != null) {
+
+            if (c.getFnName() != null) { // class function context
+                var = data.modules.get(c.getModuleName()).classes.get(c.getClName()).functions.get(c.getFnName()).vars.get(symbol);
+                if (var != null)
+                    return new SymbolData(c.getModuleName(), c.getClName(), c.getFnName(), symbol, var);
+            }
+
+            // class vars context
+            var = data.modules.get(c.getModuleName()).classes.get(c.getClName()).vars.get(symbol);
+            if (var != null)
+                return new SymbolData(c.getModuleName(), c.getClName(), null, symbol, var);
+
+        } else {
+
+            if (c.getFnName() != null) { // internal function context
+                var = data.modules.get(c.getModuleName()).internalFunctions.get(c.getFnName()).vars.get(symbol);
+                if (var != null)
+                    return new SymbolData(c.getModuleName(), null, c.getFnName(), symbol, var);
             }
         }
 
-        meta.line = res;
+        return null;
+    }
+
+    private static SymbolData findFunction(StateContext c, ProgramData data, String symbol) {
+
+        ProgramData.Function fn = null;
+        if (c.getClName() != null) {
+
+            // class function context
+            fn = data.modules.get(c.getModuleName()).classes.get(c.getClName()).functions.get(symbol);
+            if (fn != null)
+                return new SymbolData(c.getModuleName(), c.getClName(), symbol, null, fn);
+
+        } else {
+            fn = data.modules.get(c.getModuleName()).internalFunctions.get(symbol);
+            if (fn != null)
+                return new SymbolData(c.getModuleName(), null, symbol, null, fn);
+        }
+
+        fn = data.externalFunctions.get(symbol);
+        if (fn != null)
+            return new SymbolData(null, c.getClName(), symbol, null, fn);
+
+        return null;
+    }
+
+    private static SymbolData findClass(StateContext c, ProgramData data, String symbol) {
+
+        ProgramData.Clazz cl = data.modules.get(c.getModuleName()).classes.get(symbol);
+        if (cl != null)
+            return new SymbolData(c.getModuleName(), symbol, null, null, cl);
+
+        /*
+        * TODO: The following searching should be replaced with searching in included libraries list only.
+        * */
+        for (Map.Entry<String, ProgramData.Module> pair: data.modules.entrySet()) {
+            cl = pair.getValue().classes.get(symbol);
+            if (cl != null)
+                return new SymbolData(pair.getKey(), symbol, null, null, cl);
+        }
+
+        return null;
     }
 }

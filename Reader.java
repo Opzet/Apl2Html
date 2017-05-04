@@ -12,6 +12,8 @@ public class Reader implements CanProcessLine {
 
     @Override
     public void process(StateContext context, Grammar.LineMeta meta) {
+
+        boolean parameter = false;
         switch (context.getCurrentState()) {
         case INITIAL:
             data.modules.put(context.getModuleName(), new ProgramData.Module());
@@ -45,6 +47,8 @@ public class Reader implements CanProcessLine {
             }
             break;
 
+        case PARAMETERS:
+            parameter = true;
         case VARIABLES:
             if (Grammar.FunctionDefinition.VARIABLE.equals(meta.matchedPattern)) {
 
@@ -62,54 +66,19 @@ public class Reader implements CanProcessLine {
                 if (context.getClName() == null) {
                     if (context.getFnName() != null) {
                         if (context.getExternalLibName() != null) {
-                            data.externalFunctions.get(context.getFnName()).localVars.put(name, new ProgramData.Var(type));
+                            data.externalFunctions.get(context.getFnName()).vars.put(name, new ProgramData.Var(type));
                         } else {
                             data.modules.get(context.getModuleName()).internalFunctions.get(context.getFnName())
-                                    .localVars.put(name, new ProgramData.Var(type));
+                                    .vars.put(name, new ProgramData.Var(type, parameter, meta.groups.get(1) != null));
                         }
                     }
                 } else {
                     if (context.getFnName() == null) {
                         data.modules.get(context.getModuleName()).classes.get(context.getClName())
-                                .vars.put(name, new ProgramData.Var(type));
+                                .vars.put(name, new ProgramData.Var(type, parameter, meta.groups.get(1) != null));
                     } else {
                         data.modules.get(context.getModuleName()).classes.get(context.getClName()).functions.get(context.getFnName())
-                                .localVars.put(name, new ProgramData.Var(type));
-                    }
-                }
-            }
-            break;
-
-        case PARAMETERS:
-            if (Grammar.FunctionDefinition.VARIABLE.equals(meta.matchedPattern)) {
-
-                String type;
-                String name;
-                if (context.getCustomData() != null) {
-                    type = meta.groups.get(3);
-                    name = (String) context.getCustomData();
-                    context.setCustomData(null); // TODO terrible hack
-                } else {
-                    type = meta.groups.get(2);
-                    name = meta.groups.get(3);
-                }
-
-                if (context.getClName() == null) {
-                    if (context.getFnName() != null) {
-                        if (context.getExternalLibName() != null) {
-                            data.externalFunctions.get(context.getFnName()).localVars.put(name, new ProgramData.Var(type));
-                        } else {
-                            data.modules.get(context.getModuleName()).internalFunctions.get(context.getFnName()).
-                                    parameters.put(name, new ProgramData.Parameter(type, meta.groups.get(1) != null));
-                        }
-                    }
-                } else {
-                    if (context.getFnName() == null) {
-                        data.modules.get(context.getModuleName()).classes.get(context.getClName())
-                                .parameters.put(name, new ProgramData.Parameter(type, meta.groups.get(1) != null));
-                    } else {
-                        data.modules.get(context.getModuleName()).classes.get(context.getClName()).functions.get(context.getFnName())
-                                .parameters.put(name, new ProgramData.Parameter(type, meta.groups.get(1) != null));
+                                .vars.put(name, new ProgramData.Var(type, parameter, meta.groups.get(1) != null));
                     }
                 }
             }

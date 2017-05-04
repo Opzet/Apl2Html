@@ -21,41 +21,36 @@ public class ProgramData {
     public static class Clazz {
         public final Map<String, Function> functions;
         public final Map<String, Var> vars;
-        public final Map<String, Parameter> parameters;
 
         public Clazz() {
             functions = new HashMap<>();
             vars = new HashMap<>();
-            parameters = new HashMap<>();
         }
     }
 
     public static class Function {
         public final int lineNumber;
-        public final Map<String, Parameter> parameters;
-        public final Map<String, Var> localVars;
+        public final Map<String, Var> vars;
 
         public Function(int lineNumber) {
             this.lineNumber = lineNumber;
-            parameters = new HashMap<>();
-            localVars = new HashMap<>();
+            vars = new HashMap<>();
         }
     }
 
     public static class Var {
         public final String type;
+        public boolean ret;
+        public boolean parameter;
 
         public Var(String type) {
-            this.type = type;
+            this(type, false, false);
         }
-    }
 
-    public static class Parameter extends Var {
-        public boolean ret;
-
-        public Parameter(String type, boolean ret) {
-            super(type);
+        public Var(String type, boolean parameter, boolean ret) {
+            this.type = type;
             this.ret = ret;
+            this.parameter = parameter;
         }
     }
 

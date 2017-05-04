@@ -33,11 +33,16 @@ public class Parser {
         Writer writer = new Writer(programData);
 
         addHeader(writer);
+        startDataSection(writer);
 
         writer.getConverted().add("<h1>" + module.getModuleName() + "</h1>");
         State.INITIAL.setAppName(module.getModuleName());
 
         traverse(writer, module, State.INITIAL);
+
+        finishDataSection(writer);
+
+        addNavigation(module, writer);
 
         addFooter(writer);
 
@@ -160,11 +165,41 @@ public class Parser {
                 // STYLES
                 "<link rel=\"stylesheet\" type=\"text/css\" href=\"ui/style.css\">" +
                 "</head>" +
-                "<body><div class='data'>");
+                "<body>");
     }
 
     private void addFooter(Writer writer) {
-        writer.getConverted().add("</div></body></html>");
+        writer.getConverted().add("</body></html>");
+    }
+
+    private void startDataSection(Writer writer) {
+        writer.getConverted().add("<div class='data'>");
+    }
+
+    private void finishDataSection(Writer writer) {
+        writer.getConverted().add("</div>");
+    }
+
+    private void addNavigation(Module module, Writer writer) {
+        writer.getConverted().add("<nav>");
+
+        writer.getConverted().add("<ul>");
+        programData.modules.get(module.getModuleName()).classes.entrySet().forEach(clazz -> {
+            String classId = Utils.constructRefId(module.getModuleName(), clazz.getKey());
+
+            writer.getConverted().add("<li>" + Utils.constructCollapser(clazz.getKey(), "<a href="+classId+">" + clazz.getKey() + "</a></li>"));
+
+            writer.getConverted().add("<ul>");
+            clazz.getValue().functions.entrySet().forEach(function -> {
+                String functionId = Utils.constructRefId(module.getModuleName(), clazz.getKey(), function.getKey());
+                writer.getConverted().add("<li><a href="+functionId+">" + function.getKey() + "</a></li>");
+            });
+
+            writer.getConverted().add("</ul></div>");
+        });
+
+        writer.getConverted().add("</ul>");
+        writer.getConverted().add("</nav>");
     }
 
     private static String[] getHeading(String line) {

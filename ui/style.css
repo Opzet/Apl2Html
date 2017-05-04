@@ -9,7 +9,21 @@ a:focus, a:hover {
     color: inherit;
 }
 
-.data { white-space: pre; }
+.data { white-space: pre; width: calc(100%-300px;)}
+
+nav {
+    position: fixed;
+    top: 0px;
+    right: 0px;
+    bottom: 0px;
+    overflow-y:scroll;
+    overflow-x:scroll;
+    width: 300px;
+    background: #fff;
+    border-left: 1px solid #ddd;
+}
+
+nav ul {list-style-type: none;}
 
 .line_number {
     width: 100px;
@@ -22,7 +36,7 @@ a:focus, a:hover {
 }
 
 i[data-toggle='collapse'] {
-    margin-left: 10px;
+    margin-right: 10px;
 }
 
 .comment { font-style: italic; color: #777; }
