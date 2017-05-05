@@ -44,7 +44,7 @@ i[data-toggle='collapse'] {
 .function_def { color: #debb5b; }
 
 .var, .var_def { color: #c2c6a9; }
-.var.cl { color: #8376aa; }
+.var.cl, .var_def.cl { color: #8376aa; }
 
 .parameter, .parameter_def { color: #c2c6a9; }
 .parameter.cl { color: #8376aa; }
