@@ -7,7 +7,7 @@ import java.util.StringTokenizer;
  * @date 21/04/2017
  */
 public class Utils {
-    public static final String DELIMITER = " ,;=+-*/()[]<>:\t";
+    public static final String DELIMITER = " ,;'=+-*/()[]<>:\t";
 
     public static String constructSymbolId(String clazz) {
         return clazz;
