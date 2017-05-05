@@ -9,7 +9,11 @@ a:focus, a:hover {
     color: inherit;
 }
 
-.data { white-space: pre; width: calc(100%-300px;)}
+.data {
+    white-space: pre;
+    width: calc(100% - 300px);
+    overflow: scroll;
+}
 
 nav {
     position: fixed;
