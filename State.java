@@ -93,10 +93,10 @@ public enum State {
 
             } else if (Grammar.Class.VARIABLES.equals(meta.matchedPattern)) {
                 return VARIABLES;
-
             } else if (Grammar.Class.PARAMETERS.equals(meta.matchedPattern)) {
                 return PARAMETERS;
-
+            } else if (Grammar.Class.MESSAGE_ACTIONS.equals(meta.matchedPattern)) {
+                return FUNCTION_BODY;
             }
 
             return CLASS;
