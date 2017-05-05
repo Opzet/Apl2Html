@@ -2,8 +2,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,6 +21,8 @@ public class Writer implements CanProcessLine {
     
     @Override
     public void process(StateContext context, Grammar.LineMeta meta) {
+
+        meta.line = Utils.htmlEscape(meta.line);
 
         if (Grammar.General.COMMENT_BLOCK.equals(meta.matchedPattern) ||
                 State.COMMENT_BLOCK.equals(context.getCurrentState())) {
@@ -135,10 +135,10 @@ public class Writer implements CanProcessLine {
             line = line + "<span class=\"" + classNames + "\">" + meta.line + "</span>";
         }
 
-        return getEscaped(line, meta);
+        return getTabEscaped(line, meta);
     }
 
-    protected static String getEscaped(String line, Grammar.LineMeta meta) {
+    protected static String getTabEscaped(String line, Grammar.LineMeta meta) {
         return line.replace("\t", String.join("", Collections.nCopies(meta.indentSize, " ")));
     }
 

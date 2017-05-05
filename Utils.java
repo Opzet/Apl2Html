@@ -84,6 +84,10 @@ public class Utils {
         return tmp;
     }
 
+    public static String htmlEscape(String line) {
+        return line.replace("\"", "&quot;").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+    }
+
     public static class Token {
         private Character rightChar;
         private String token;

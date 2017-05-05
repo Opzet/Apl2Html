@@ -53,6 +53,7 @@ public class Grammar {
 
     public enum Application implements LinePattern {
         COLLAPSE_ONLY("(^Formats|^Window Defaults|^Design-time Settings)"),
+        VARIABLES("^Variables"), // TODO not used yet
         INTERNAL_FUNCTIONS("^Internal Functions"),
         EXTERNAL_FUNCTIONS("^External Functions"),
         LIBRARY_NAME("^Library name: ([_\\w]+)"),
@@ -73,7 +74,7 @@ public class Grammar {
 
     public enum Class implements LinePattern {
         FUNCTION_DEFINITION("^Function: ([_\\w]+)"),
-        VARIABLES("^Window Variables"),
+        VARIABLES("(^Window Variables|^Class Variables|^Instance Variables)"),
         PARAMETERS("^Window Parameters");
 
         private final Pattern pattern;
