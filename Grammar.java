@@ -74,6 +74,7 @@ public class Grammar {
 
     public enum Class implements LinePattern {
         FUNCTION_DEFINITION("^Function: ([_\\w]+)"),
+        MESSAGE_DEFINITION("^On ([_\\w]+)"),
         VARIABLES("(^Window Variables|^Class Variables|^Instance Variables)"),
         PARAMETERS("^Window Parameters"),
         MESSAGE_ACTIONS("^Message Actions");

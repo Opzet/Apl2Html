@@ -29,11 +29,15 @@ public class ProgramData {
     }
 
     public static class Function {
-        public final int lineNumber;
+        public final boolean messageAction;
         public final Map<String, Var> vars;
 
-        public Function(int lineNumber) {
-            this.lineNumber = lineNumber;
+        public Function() {
+            this(false);
+        }
+
+        public Function(boolean messageAction) {
+            this.messageAction = messageAction;
             vars = new HashMap<>();
         }
     }

@@ -96,7 +96,7 @@ public enum State {
             } else if (Grammar.Class.PARAMETERS.equals(meta.matchedPattern)) {
                 return PARAMETERS;
             } else if (Grammar.Class.MESSAGE_ACTIONS.equals(meta.matchedPattern)) {
-                return FUNCTION_BODY;
+                return MESSAGE_ACTIONS;
             }
 
             return CLASS;
@@ -105,6 +105,21 @@ public enum State {
         @Override
         public void closeScope(StateContext context) {
             context.setClName(null);
+        }
+    },
+
+    MESSAGE_ACTIONS(Grammar.Class.values()) {
+        @Override
+        public State getNewState (StateContext context, Grammar.LineMeta meta) {
+            if (Grammar.Class.MESSAGE_DEFINITION.equals(meta.matchedPattern)) {
+                return FUNCTION_BODY;
+            }
+
+            return MESSAGE_ACTIONS;
+        }
+
+        @Override
+        public void closeScope(StateContext context) {
         }
     },
 

@@ -30,20 +30,26 @@ public class Reader implements CanProcessLine {
         case INTERNAL_FUNCTIONS:
             if (Grammar.Application.FUNCTION_DEFINITION.equals(meta.matchedPattern)) {
                 data.modules.get(context.getModuleName())
-                        .internalFunctions.put(meta.groups.get(1), new ProgramData.Function(meta.lineNumber));
+                        .internalFunctions.put(meta.groups.get(1), new ProgramData.Function());
                 break;
             }
 
         case EXTERNAL_LIBRARY:
             if (Grammar.Application.FUNCTION_DEFINITION.equals(meta.matchedPattern)) {
-                data.externalFunctions.put(meta.groups.get(1), new ProgramData.Function(meta.lineNumber));
+                data.externalFunctions.put(meta.groups.get(1), new ProgramData.Function());
                 break;
             }
 
+        case MESSAGE_ACTIONS:
+            if (Grammar.Class.MESSAGE_DEFINITION.equals(meta.matchedPattern)) {
+                data.modules.get(context.getModuleName()).classes.get(context.getClName())
+                        .functions.put(meta.groups.get(1), new ProgramData.Function(true));
+            }
+            break;
         case CLASS:
             if (Grammar.Class.FUNCTION_DEFINITION.equals(meta.matchedPattern)) {
                 data.modules.get(context.getModuleName()).classes.get(context.getClName())
-                        .functions.put(meta.groups.get(1), new ProgramData.Function(meta.lineNumber));
+                        .functions.put(meta.groups.get(1), new ProgramData.Function());
             }
             break;
 

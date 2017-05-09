@@ -45,6 +45,13 @@ public class Writer implements CanProcessLine {
             converted.add(build(meta));
             break;
 
+        case MESSAGE_ACTIONS:
+            if (Grammar.Class.MESSAGE_DEFINITION.equals(meta.matchedPattern)) {
+                replaceFunctionDefinitionSymbols(context, data, meta);
+            }
+
+            converted.add(build(meta));
+            break;
         case CLASS:
             if (Grammar.Class.FUNCTION_DEFINITION.equals(meta.matchedPattern)) {
                 replaceFunctionDefinitionSymbols(context, data, meta);
