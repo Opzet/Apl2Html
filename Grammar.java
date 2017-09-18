@@ -52,13 +52,13 @@ public class Grammar {
     }
 
     public enum Application implements LinePattern {
-        COLLAPSE_ONLY("(^Formats|^Window Defaults|^Design-time Settings)"),
+        COLLAPSE_ONLY("^(Formats|Window Defaults|Design-time Settings)"),
         VARIABLES("^Variables"), // TODO not used yet
         INTERNAL_FUNCTIONS("^Internal Functions"),
         EXTERNAL_FUNCTIONS("^External Functions"),
         LIBRARY_NAME("^Library name: ([_\\w]+)"),
         FUNCTION_DEFINITION("^Function: ([_\\w]+)"),
-        CLASS("(^Form Window:|^Functional Class:|^Dialog Box:) ([_\\w]+)");
+        CLASS("^(Form Window|Functional Class|Dialog Box): ([_\\w]+)");
 
         private final Pattern pattern;
 
@@ -75,9 +75,10 @@ public class Grammar {
     public enum Class implements LinePattern {
         FUNCTION_DEFINITION("^Function: ([_\\w]+)"),
         MESSAGE_DEFINITION("^On ([_\\w]+)"),
-        VARIABLES("(^Window Variables|^Class Variables|^Instance Variables)"),
+        VARIABLES("^(Window Variables|Class Variables|Instance Variables)"),
         PARAMETERS("^Window Parameters"),
-        MESSAGE_ACTIONS("^Message Actions");
+        MESSAGE_ACTIONS("^Message Actions"),
+        VARIABLE_DEFINITION("^(Radio Button|Group Box|Combo Box|Background Text|Data Field|Check Box|Pushbutton): ([_\\w]+)");
 
         private final Pattern pattern;
 

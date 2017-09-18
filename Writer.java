@@ -2,8 +2,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import sun.plugin.dom.exception.InvalidStateException;
 
 /**
  * @author m4g4
@@ -35,11 +39,13 @@ public class Writer implements CanProcessLine {
         switch (context.getCurrentState()) {
         case INITIAL:
             converted.add(build(meta));
+            context.setCurrentClass(data.modules.get(context.getModuleName()));
             break;
 
         case APPLICATION:
             if (Grammar.Application.CLASS.equals(meta.matchedPattern)) {
                 replaceClassDefinitionSymbols(context, data, meta);
+                context.setCurrentClass(context.getCurrentClass().classes.get(meta.groups.get(2)));
             }
 
             converted.add(build(meta));
@@ -55,6 +61,9 @@ public class Writer implements CanProcessLine {
         case CLASS:
             if (Grammar.Class.FUNCTION_DEFINITION.equals(meta.matchedPattern)) {
                 replaceFunctionDefinitionSymbols(context, data, meta);
+            } else if (Grammar.Class.VARIABLE_DEFINITION.equals(meta.matchedPattern)) {
+                replaceVarDefinitions(context, data, meta);
+                context.setCurrentClass(context.getCurrentClass().classes.get(meta.groups.get(2)));
             }
 
             converted.add(build(meta));
@@ -98,6 +107,10 @@ public class Writer implements CanProcessLine {
 
     @Override
     public void closeScope(StateContext context) {
+        if (context.getCurrentState() == State.APPLICATION ||
+                context.getCurrentState() == State.VARIABLE_DEFINITION ||
+                context.getCurrentState() == State.CLASS)
+            context.setCurrentClass(context.getCurrentClass().parent);
     }
 
     public List<String> getConverted() {
@@ -155,10 +168,11 @@ public class Writer implements CanProcessLine {
         List<Utils.Token> tokens = Utils.tokenize(meta.line);
         for (Utils.Token token : tokens) {
 
-            ProgramData.Clazz clazz = data.modules.get(c.getModuleName()).classes.get(token.getToken());
+            ProgramData.Clazz clazz = c.getCurrentClass().classes.get(token.getToken());
 
             if (clazz != null) {
-                res = res.replaceFirst(token.getToken(), "<a id= '"+Utils.constructSymbolId(token.getToken())+"' class='class_def'>" + token.getToken() + "</a>");
+                List<String> symbols = ProgramData.createSymbolParentChildList(clazz);
+                res = res.replaceFirst(token.getToken(), "<a id= '"+Utils.constructSymbolId(symbols)+"' class='class_def'>" + token.getToken() + "</a>");
             }
         }
 
@@ -173,7 +187,7 @@ public class Writer implements CanProcessLine {
 
         ProgramData.Function line;
         for (Utils.Token token : tokens) {
-            line = data.externalFunctions.get(token.getToken());
+            line = c.getCurrentClass().functions.get(token.getToken());
 
             if (line != null) {
                 res = res.replaceFirst(token.getToken(), "<a href='' class='function_def external'>" + token.getToken() + "</a>");
@@ -189,17 +203,15 @@ public class Writer implements CanProcessLine {
 
         List<Utils.Token> tokens = Utils.tokenize(meta.line);
 
-        ProgramData.Function line;
-        for (Utils.Token token : tokens) {
-            if (c.getClName() == null) {
-                line = data.modules.get(c.getModuleName()).internalFunctions.get(token.getToken());
-            } else {
-                line = data.modules.get(c.getModuleName()).classes.get(c.getClName())
-                        .functions.get(token.getToken());
-            }
+        // TODO MAGA test if can merge with replaceExternalFunctionDefinitionSymbols
 
-            if (line != null) {
-                res = res.replaceFirst(token.getToken(), "<a id='"+Utils.constructSymbolId(c.getClName(), token.getToken())+"' class='function_def'>" + token.getToken() + "</a>");
+        ProgramData.Function function;
+        for (Utils.Token token : tokens) {
+            function = c.getCurrentClass().functions.get(token.getToken());
+
+            if (function != null) {
+                List<String> symbols = ProgramData.createSymbolParentChildList(function);
+                res = res.replaceFirst(token.getToken(), "<a id='"+Utils.constructSymbolId(symbols)+"' class='function_def'>" + token.getToken() + "</a>");
             }
         }
 
@@ -215,26 +227,20 @@ public class Writer implements CanProcessLine {
             ProgramData.Var var;
 
             boolean classVar = false;
-            if (c.getClName() == null) {
-                var = data.modules.get(c.getModuleName()).internalFunctions.get(c.getFnName())
-                        .vars.get(token.getToken());
+            if (c.getFnName() == null) {
+                var = c.getCurrentClass().vars.get(token.getToken());
+                classVar = true;
             } else {
-                if (c.getFnName() == null) {
-                    var = data.modules.get(c.getModuleName()).classes.get(c.getClName())
-                            .vars.get(token.getToken());
-                    classVar = true;
-                } else {
-                    var = data.modules.get(c.getModuleName()).classes.get(c.getClName()).functions.get(c.getFnName())
-                            .vars.get(token.getToken());
-                }
+                var = c.getCurrentClass().functions.get(c.getFnName()).vars.get(token.getToken());
             }
 
             if (var != null) {
                 String classParam = classVar ? "cl" : "";
                 String paramVar = var.parameter ? "parameter_def" : "var_def";
 
-                res = res.replaceAll(token.getToken(), "<a id='" +
-                        Utils.constructSymbolId(c.getClName(), c.getFnName(), token.getToken()) +
+                List<String> symbols = ProgramData.createSymbolParentChildList(var);
+
+                res = res.replaceAll(token.getToken(), "<a id='" + Utils.constructSymbolId(symbols) +
                         "' class='"+paramVar+" "+classParam+"'>" + token.getToken() + "</a>");
             }
         }
@@ -244,120 +250,175 @@ public class Writer implements CanProcessLine {
 
     private static void replaceSymbols(StateContext c, ProgramData data, Grammar.LineMeta meta) {
 
+        ProgramData.Clazz currentClazz = c.getCurrentClass();
+        ProgramData.Function currentFunction;
+        List<SymbolData> symbolChain = new ArrayList<>();
+
         List<Utils.Token> tokens = Utils.tokenize(meta.line);
         for (int i = 0; i < tokens.size(); ++i) {
             Utils.Token token = tokens.get(i);
 
-            SymbolData symbolData = null;
-            StateContext symbolContext = c;
-            if (!token.getRightChar().equals('.')) {
-                symbolData = findVariable(symbolContext, data, token.getToken());
-                if (symbolData == null)
-                    symbolData = findFunction(symbolContext, data, token.getToken());
+            if (token.getOffset() > 1 &&
+                    token.getLine().substring(token.getOffset() - 2, token.getOffset()).equals("..")) {
+                // It's an inheritance
+                // TODO finish me!
 
-                if (symbolData !=null) {
-                    replaceToken(symbolData, tokens, i, meta);
-                }
+                currentFunction = null;
 
-                continue;
+            } else if (token.getOffset() > 0 &&
+                    token.getLine().substring(token.getOffset() - 1, token.getOffset()).equals(".")) {
+
+                if (symbolChain.isEmpty())
+                    continue;
+
+                SymbolData contextSymbol = findContextSymbol(token, tokens, symbolChain);
+
+                if (contextSymbol == null || !(contextSymbol.getType() instanceof ProgramData.Var))
+                    continue;
+
+                ProgramData.Var var = (ProgramData.Var) contextSymbol.getType();
+
+                currentClazz = findClass(currentClazz, data, var.type);
+                currentFunction = null;
 
             } else {
-                symbolData = findVariable(symbolContext, data, token.getToken());
-                if (symbolData == null)
-                    continue; // not found
-                else {
-                    replaceToken(symbolData, tokens, i, meta);
-                }
+                currentClazz = c.getCurrentClass();
+                currentFunction = c.getCurrentClass().functions.get(c.getFnName());
             }
 
-            ProgramData.Var var = (ProgramData.Var) symbolData.getSymbol();
-            SymbolData classData = findClass(symbolContext, data, var.type);
-
-            if (classData == null)
+            if (currentClazz == null) {
+                // TODO log me
                 continue;
+            }
 
-            symbolContext = new StateContext();
-            symbolContext.setModuleName(classData.getModuleName());
-            symbolContext.setClName(classData.getClassName());
+            SymbolData symbolData = null;
+            if (currentFunction != null)
+                symbolData = findVariable(currentFunction, data, token.getToken());
+
+            if (symbolData == null)
+                symbolData = findVariable(currentClazz, data, token.getToken());
+
+            if (symbolData == null)
+                symbolData = findFunction(currentClazz, data, token.getToken());
+
+            if (symbolData == null)
+                continue; // not found
+
+            symbolChain.add(symbolData);
+
+            replaceToken(symbolData, tokens, i, meta);
         }
+    }
+
+    private static SymbolData findContextSymbol(Utils.Token token, List<Utils.Token> tokens, List<SymbolData> symbolChain) {
+
+        String line = token.getLine();
+        if (line.charAt(token.getOffset() - 1) != '.') {
+            throw new InvalidStateException(". expected at index " + (token.getOffset() - 1) + " in line " + line);
+        }
+
+        Stack<Character> parenthesis = new Stack<>();
+        for (int i = token.getOffset() - 2; i > 0; --i) {
+            char c = token.getLine().charAt(i);
+
+            if (parenthesis.isEmpty()) {
+                if (c == ']' || c == ')') {
+                    parenthesis.push(c);
+
+                } else {
+                    for (int j = tokens.size() - 1; j >= 0; --j) {
+                        Utils.Token tkn = tokens.get(j);
+
+                        if (tkn.getOffset() <= i) {
+                            Optional<SymbolData> symbol = symbolChain.stream()
+                                    .filter(s -> s.getType().getName().equals(tkn.getToken()))
+                                    .findFirst();
+                            return symbol.isPresent() ? symbol.get() : null;
+                        }
+                    }
+                }
+
+            } else if (c == '[' || c == '(') {
+                parenthesis.pop();
+            }
+        }
+
+        return null;
     }
 
     private static void replaceToken(SymbolData symbolData, List<Utils.Token> tokens, int tokenNumber, Grammar.LineMeta meta) {
         StringBuilder clazz = new StringBuilder();
         String id = null;
-        if ((symbolData.getSymbol() instanceof ProgramData.Var)) {
-            ProgramData.Var v = (ProgramData.Var) symbolData.getSymbol();
+        if ((symbolData.getType() instanceof ProgramData.Var)) {
+            ProgramData.Var v = (ProgramData.Var) symbolData.getType();
             clazz.append(v.parameter ? "parameter " : "var ");
             clazz.append(v.ret ? "ret " : "");
+            clazz.append(v.parent instanceof ProgramData.Function ? "" : "cl ");
 
-            id = Utils.constructRefId(symbolData.getModuleName(), symbolData.getClassName(), symbolData.getFunctionName(), tokens.get(tokenNumber).getToken());
-        } else if ((symbolData.getSymbol() instanceof ProgramData.Function)) {
+        } else if ((symbolData.getType() instanceof ProgramData.Function)) {
             clazz.append("function ");
-            id = Utils.constructRefId(symbolData.getModuleName(), symbolData.getClassName(), null, tokens.get(tokenNumber).getToken());
         }
 
-        clazz.append(symbolData.getFunctionName() == null ? "cl " : "");
+        id = Utils.constructRefId(ProgramData.createSymbolParentChildList(symbolData.getType()));
 
         meta.line = Utils.replaceToken(meta.line, tokens, tokenNumber, "<a href='" + id + "' class='"+clazz+"'>" + tokens.get(tokenNumber).getToken() + "</a>");
 
     }
 
-    private static SymbolData findVariable(StateContext c, ProgramData data, String symbol) {
+    private static SymbolData findVariable(ProgramData.Clazz clazz, ProgramData data, String symbol) {
 
-        ProgramData.Var var = null;
-        if (c.getClName() != null) {
+        // class vars context
+        ProgramData.Var var = clazz.vars.get(symbol);
+        if (var != null)
+            return new SymbolData(clazz, var);
 
-            if (c.getFnName() != null) { // class function context
-                var = data.modules.get(c.getModuleName()).classes.get(c.getClName()).functions.get(c.getFnName()).vars.get(symbol);
-                if (var != null)
-                    return new SymbolData(c.getModuleName(), c.getClName(), c.getFnName(), symbol, var);
-            }
+        return null;
+    }
 
-            // class vars context
-            var = data.modules.get(c.getModuleName()).classes.get(c.getClName()).vars.get(symbol);
+    private static SymbolData findVariable(ProgramData.Function function, ProgramData data, String symbol) {
+
+        ProgramData.Var var = function.vars.get(symbol);
+        if (var != null)
+            return new SymbolData(function.parent, var);
+
+        for (Map.Entry<String, ProgramData.Module> pair: data.modules.entrySet()) {
+            var = pair.getValue().vars.get(symbol);
             if (var != null)
-                return new SymbolData(c.getModuleName(), c.getClName(), null, symbol, var);
+                return new SymbolData(pair.getValue(), var);
+        }
 
-        } else {
+        return null;
+    }
 
-            if (c.getFnName() != null) { // internal function context
-                var = data.modules.get(c.getModuleName()).internalFunctions.get(c.getFnName()).vars.get(symbol);
-                if (var != null)
-                    return new SymbolData(c.getModuleName(), null, c.getFnName(), symbol, var);
+    private static SymbolData findFunction(ProgramData.Clazz clazz, ProgramData data, String symbol) {
+
+        ProgramData.Function fn = clazz.functions.get(symbol);
+            if (fn != null)
+                return new SymbolData(clazz, fn);
+
+        for (Map.Entry<String, ProgramData.Module> pair: data.modules.entrySet()) {
+            fn = pair.getValue().functions.get(symbol);
+            if (fn != null)
+                return new SymbolData(pair.getValue(), fn);
+        }
+
+        return null;
+    }
+
+    private static ProgramData.Clazz findClass(ProgramData.Clazz c, ProgramData data, String symbol) {
+
+        ProgramData.Clazz node = c;
+        while (node != null) {
+            ProgramData.Clazz cl = node.classes.get(symbol);
+
+            if (cl != null) {
+                return cl;
             }
+            else
+                node = node.parent;
         }
 
-        return null;
-    }
-
-    private static SymbolData findFunction(StateContext c, ProgramData data, String symbol) {
-
-        ProgramData.Function fn = null;
-        if (c.getClName() != null) {
-
-            // class function context
-            fn = data.modules.get(c.getModuleName()).classes.get(c.getClName()).functions.get(symbol);
-            if (fn != null)
-                return new SymbolData(c.getModuleName(), c.getClName(), symbol, null, fn);
-
-        } else {
-            fn = data.modules.get(c.getModuleName()).internalFunctions.get(symbol);
-            if (fn != null)
-                return new SymbolData(c.getModuleName(), null, symbol, null, fn);
-        }
-
-        fn = data.externalFunctions.get(symbol);
-        if (fn != null)
-            return new SymbolData(null, c.getClName(), symbol, null, fn);
-
-        return null;
-    }
-
-    private static SymbolData findClass(StateContext c, ProgramData data, String symbol) {
-
-        ProgramData.Clazz cl = data.modules.get(c.getModuleName()).classes.get(symbol);
-        if (cl != null)
-            return new SymbolData(c.getModuleName(), symbol, null, null, cl);
+        ProgramData.Clazz cl;
 
         /*
         * TODO: The following searching should be replaced with searching in included libraries list only.
@@ -365,7 +426,7 @@ public class Writer implements CanProcessLine {
         for (Map.Entry<String, ProgramData.Module> pair: data.modules.entrySet()) {
             cl = pair.getValue().classes.get(symbol);
             if (cl != null)
-                return new SymbolData(pair.getKey(), symbol, null, null, cl);
+                return cl;
         }
 
         return null;

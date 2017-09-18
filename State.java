@@ -35,7 +35,6 @@ public enum State {
                 return EXTERNAL_FUNCTIONS;
 
             } else if (Grammar.Application.CLASS.equals(meta.matchedPattern)) {
-                context.setClName(meta.groups.get(2));
                 return CLASS;
 
             } else if (Grammar.Application.COLLAPSE_ONLY.equals(meta.matchedPattern)) {
@@ -97,14 +96,22 @@ public enum State {
                 return PARAMETERS;
             } else if (Grammar.Class.MESSAGE_ACTIONS.equals(meta.matchedPattern)) {
                 return MESSAGE_ACTIONS;
+            }  else if (Grammar.Class.VARIABLE_DEFINITION.equals(meta.matchedPattern)) {
+                return VARIABLE_DEFINITION;
             }
 
             return CLASS;
         }
+    },
 
+    VARIABLE_DEFINITION(Grammar.Class.values()) {
         @Override
-        public void closeScope(StateContext context) {
-            context.setClName(null);
+        public State getNewState (StateContext context, Grammar.LineMeta meta) {
+            if (Grammar.Class.MESSAGE_ACTIONS.equals(meta.matchedPattern)) {
+                return MESSAGE_ACTIONS;
+            }
+
+            return VARIABLE_DEFINITION;
         }
     },
 
@@ -116,10 +123,6 @@ public enum State {
             }
 
             return MESSAGE_ACTIONS;
-        }
-
-        @Override
-        public void closeScope(StateContext context) {
         }
     },
 

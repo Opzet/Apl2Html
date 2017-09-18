@@ -6,7 +6,7 @@ public class Reader implements CanProcessLine {
 
     private final ProgramData data;
 
-    Reader(ProgramData data) {
+    public Reader(ProgramData data) {
         this.data = data;
     }
 
@@ -16,40 +16,42 @@ public class Reader implements CanProcessLine {
         boolean parameter = false;
         switch (context.getCurrentState()) {
         case INITIAL:
-            data.modules.put(context.getModuleName(), new ProgramData.Module());
+            ProgramData.Module m = new ProgramData.Module(context.getModuleName(), null);
+            data.modules.put(context.getModuleName(), m);
+            context.setCurrentClass(m);
             break;
 
         case APPLICATION:
             if (Grammar.Application.CLASS.equals(meta.matchedPattern)) {
-                data.modules.get(context.getModuleName())
-                        .classes.put(meta.groups.get(2), new ProgramData.Clazz());
-
+                ProgramData.Clazz c = data.modules.get(context.getModuleName()).addNewClass(meta.groups.get(2));
+                context.setCurrentClass(c);
             }
             break;
 
         case INTERNAL_FUNCTIONS:
             if (Grammar.Application.FUNCTION_DEFINITION.equals(meta.matchedPattern)) {
-                data.modules.get(context.getModuleName())
-                        .internalFunctions.put(meta.groups.get(1), new ProgramData.Function());
+                data.modules.get(context.getModuleName()).addNewFunction(meta.groups.get(1));
                 break;
             }
 
         case EXTERNAL_LIBRARY:
             if (Grammar.Application.FUNCTION_DEFINITION.equals(meta.matchedPattern)) {
-                data.externalFunctions.put(meta.groups.get(1), new ProgramData.Function());
+                //data.modules.get(context.getModuleName()).addNewFunction(meta.groups.get(1)); // TODO is this ??
                 break;
             }
 
         case MESSAGE_ACTIONS:
             if (Grammar.Class.MESSAGE_DEFINITION.equals(meta.matchedPattern)) {
-                data.modules.get(context.getModuleName()).classes.get(context.getClName())
-                        .functions.put(meta.groups.get(1), new ProgramData.Function(true));
+                context.getCurrentClass().addNewFunction(meta.groups.get(1), true);
             }
             break;
         case CLASS:
             if (Grammar.Class.FUNCTION_DEFINITION.equals(meta.matchedPattern)) {
-                data.modules.get(context.getModuleName()).classes.get(context.getClName())
-                        .functions.put(meta.groups.get(1), new ProgramData.Function());
+                context.getCurrentClass().addNewFunction(meta.groups.get(1));
+            } else if (Grammar.Class.VARIABLE_DEFINITION.equals(meta.matchedPattern)) {
+                ProgramData.Clazz clazz = context.getCurrentClass().addNewClass(meta.groups.get(2));
+                context.getCurrentClass().addNewVar(meta.groups.get(2), meta.groups.get(1));
+                context.setCurrentClass(clazz);
             }
             break;
 
@@ -69,23 +71,11 @@ public class Reader implements CanProcessLine {
                     name = meta.groups.get(3);
                 }
 
-                if (context.getClName() == null) {
-                    if (context.getFnName() != null) {
-                        if (context.getExternalLibName() != null) {
-                            data.externalFunctions.get(context.getFnName()).vars.put(name, new ProgramData.Var(type));
-                        } else {
-                            data.modules.get(context.getModuleName()).internalFunctions.get(context.getFnName())
-                                    .vars.put(name, new ProgramData.Var(type, parameter, meta.groups.get(1) != null));
-                        }
-                    }
+                if (context.getFnName() == null) {
+                    context.getCurrentClass().addNewVar(name, type, parameter, meta.groups.get(1) != null);
                 } else {
-                    if (context.getFnName() == null) {
-                        data.modules.get(context.getModuleName()).classes.get(context.getClName())
-                                .vars.put(name, new ProgramData.Var(type, parameter, meta.groups.get(1) != null));
-                    } else {
-                        data.modules.get(context.getModuleName()).classes.get(context.getClName()).functions.get(context.getFnName())
-                                .vars.put(name, new ProgramData.Var(type, parameter, meta.groups.get(1) != null));
-                    }
+                    context.getCurrentClass().functions.get(context.getFnName())
+                            .addNewVar(name, type, parameter, meta.groups.get(1) != null);
                 }
             }
             break;
@@ -94,5 +84,9 @@ public class Reader implements CanProcessLine {
 
     @Override
     public void closeScope(StateContext context) {
+        if (context.getCurrentState() == State.APPLICATION ||
+                context.getCurrentState() == State.VARIABLE_DEFINITION ||
+                context.getCurrentState() == State.CLASS)
+        context.setCurrentClass(context.getCurrentClass().parent);
     }
 }

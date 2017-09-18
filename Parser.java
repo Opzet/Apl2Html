@@ -185,21 +185,34 @@ public class Parser {
 
         writer.getConverted().add("<ul>");
         programData.modules.get(module.getModuleName()).classes.entrySet().forEach(clazz -> {
-            String classId = Utils.constructRefId(module.getModuleName(), clazz.getKey());
-
-            writer.getConverted().add("<li>" + Utils.constructCollapser(clazz.getKey(), "<a href="+classId+">" + clazz.getKey() + "</a></li>"));
-
-            writer.getConverted().add("<ul>");
-            clazz.getValue().functions.entrySet().forEach(function -> {
-                String functionId = Utils.constructRefId(module.getModuleName(), clazz.getKey(), function.getKey());
-                writer.getConverted().add("<li><a href="+functionId+">" + function.getKey() + "</a></li>");
-            });
-
-            writer.getConverted().add("</ul></div>");
+            printClazz(writer, clazz.getValue());
         });
 
         writer.getConverted().add("</ul>");
         writer.getConverted().add("</nav>");
+    }
+
+    private static void printClazz(Writer writer, ProgramData.Clazz clazz) {
+        String classId = Utils.constructRefId(ProgramData.createSymbolParentChildList(clazz));
+
+        writer.getConverted().add("<li>" + Utils.constructCollapser(clazz.getName(), "<a href="+classId+">" + clazz.getName() + "</a></li>"));
+
+        writer.getConverted().add("<ul>");
+
+        clazz.classes.entrySet().forEach(subClazz -> printClazz(writer, subClazz.getValue()));
+
+        clazz.functions.entrySet().forEach(function -> {
+            String functionId = Utils.constructRefId(ProgramData.createSymbolParentChildList(function.getValue()));
+            writer.getConverted().add("<li><a href="+functionId+">" + function.getKey() + "</a></li>");
+        });
+
+        clazz.vars.entrySet().forEach(var -> {
+            String varId = Utils.constructRefId(ProgramData.createSymbolParentChildList(var.getValue()));
+            writer.getConverted().add("<li><a href="+varId+">" + var.getKey() + "</a></li>");
+        });
+
+        writer.getConverted().add("</ul>");
+        writer.getConverted().add("</div>"); // close collapser
     }
 
     private static String[] getHeading(String line) {

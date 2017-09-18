@@ -9,35 +9,21 @@ import java.util.StringTokenizer;
 public class Utils {
     public static final String DELIMITER = " .,;'=+-*/()[]<>:\t";
 
-    public static String constructSymbolId(String clazz) {
-        return clazz;
+    public static String constructSymbolId(List<String> symbols) {
+        StringBuilder refId = new StringBuilder();
+
+        for (int i = 1; i < symbols.size(); i++) {
+            refId.append(normalizeSymbol(symbols.get(i)));
+
+            if (i + 1 < symbols.size())
+                refId.append("_");
+        }
+
+        return refId.toString();
     }
 
-    public static String constructSymbolId(String clazz, String function) {
-        return (clazz != null ? clazz + "_" : "") + function;
-    }
-
-    public static String constructSymbolId(String clazz, String function, String symbol) {
-        return (clazz != null ? clazz + "_" : "") +
-                (function != null ? function + "_" : "") +
-                normalizeSymbol(symbol);
-    }
-
-    public static String constructRefId(String module, String clazz) {
-        return module + ".html#" + clazz;
-    }
-
-    public static String constructRefId(String module, String clazz, String function) {
-        return module + ".html#" +
-                (clazz != null ? clazz + "_" : "") +
-                function;
-    }
-
-    public static String constructRefId(String module, String clazz, String function, String symbol) {
-        return module + ".html#" +
-                (clazz != null ? clazz + "_" : "") +
-                (function != null ? function + "_" : "") +
-                normalizeSymbol(symbol);
+    public static String constructRefId(List<String> symbols) {
+        return normalizeSymbol(symbols.get(0)) + ".html#" + constructSymbolId(symbols);
     }
 
     private static String normalizeSymbol(String symbol) {
@@ -89,20 +75,26 @@ public class Utils {
     }
 
     public static class Token {
-        private Character rightChar;
+        private int offset;
+        private String line;
         private String token;
 
-        public Token(Character rightChar, String token) {
-            this.rightChar = rightChar;
+        public Token(int offset, String line, String token) {
+            this.offset = offset;
+            this.line = line;
             this.token = token;
         }
 
-        public Character getRightChar() {
-            return rightChar;
+        public int getOffset() {
+            return offset;
         }
 
         public String getToken() {
             return token;
+        }
+
+        public String getLine() {
+            return line;
         }
 
         @Override
@@ -115,24 +107,26 @@ public class Utils {
         List<Token> tokens = new ArrayList<>();
 
         StringBuilder lastBuilder = null;
+        int pos = 0;
 
         for (int i = 0; i < line.length(); ++i ) {
             char ch = line.charAt(i);
             if (DELIMITER.indexOf(ch) == -1) {
                 if (lastBuilder == null) {
+                    pos = i;
                     lastBuilder = new StringBuilder();
                 }
                 lastBuilder.append(ch);
             } else {
                 if (lastBuilder != null) {
-                    tokens.add(new Token(ch, lastBuilder.toString()));
+                    tokens.add(new Token(pos, line, lastBuilder.toString()));
                     lastBuilder = null;
                 }
             }
         }
 
         if (lastBuilder != null) {
-            tokens.add(new Token(' ', lastBuilder.toString()));
+            tokens.add(new Token(pos, line, lastBuilder.toString()));
         }
 
         return tokens;

@@ -5,10 +5,10 @@
 public class StateContext {
     private String moduleName;
     private String externalLibName;
-    private String clName;
     private String fnName;
     private Object customData;
 
+    private ProgramData.Clazz currentClass;
     private State currentState;
 
     public String getModuleName() {
@@ -27,12 +27,8 @@ public class StateContext {
         this.externalLibName = externalLibName;
     }
 
-    public String getClName() {
-        return clName;
-    }
-
-    public void setClName(String clName) {
-        this.clName = clName;
+    public String getClazzName() {
+        return currentClass.name;
     }
 
     public String getFnName() {
@@ -57,5 +53,13 @@ public class StateContext {
 
     public void setCustomData(Object customData) {
         this.customData = customData;
+    }
+
+    public ProgramData.Clazz getCurrentClass() {
+        return currentClass;
+    }
+
+    public void setCurrentClass(ProgramData.Clazz currentClass) {
+        this.currentClass = currentClass;
     }
 }
