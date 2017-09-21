@@ -12,7 +12,7 @@ public class Utils {
     public static String constructSymbolId(List<String> symbols) {
         StringBuilder refId = new StringBuilder();
 
-        for (int i = 1; i < symbols.size(); i++) {
+        for (int i = 0; i < symbols.size(); i++) {
             refId.append(normalizeSymbol(symbols.get(i)));
 
             if (i + 1 < symbols.size())

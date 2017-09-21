@@ -2,6 +2,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * @author m4g4
@@ -15,22 +17,34 @@ public class ProgramData {
     }
 
     public static class Clazz implements DataType {
+        public String baseClassType;
+        public Clazz baseClass;
         public final Clazz parent;
         public final String name;
         public final Map<String, Function> functions;
         public final Map<String, Var> vars;
         public final Map<String, Clazz> classes;
+        public final boolean anonymousInstance;
 
-        public Clazz(String name, Clazz parent) {
+        public Clazz(String name, Clazz parent, boolean anonymousInstance) {
             this.name = name;
             this.parent = parent;
+            this.anonymousInstance = anonymousInstance;
             functions = new LinkedHashMap<>();
             vars = new LinkedHashMap<>();
             classes = new LinkedHashMap<>();
         }
 
-        public Clazz addNewClass(String name) {
-            return classes.computeIfAbsent(name, v -> new Clazz(name, this));
+        public void setBaseClassType(String name) {
+            this.baseClassType = name;
+        }
+
+        public void setBaseClass(String name) {
+            this.baseClassType = name;
+        }
+
+        public Clazz addNewClass(String name, boolean anonymousInstance) {
+            return classes.computeIfAbsent(name, v -> new Clazz(name, this, anonymousInstance));
         }
 
         public Function addNewFunction(String name) {
@@ -58,11 +72,25 @@ public class ProgramData {
         public DataType getParent() {
             return parent;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Clazz clazz = (Clazz) o;
+            return Objects.equals(parent, clazz.parent) &&
+                    Objects.equals(name, clazz.name);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(parent, name);
+        }
     }
 
     public static class Module extends Clazz {
         public Module(String name, Clazz parent) {
-            super(name, parent);
+            super(name, parent, false);
         }
     }
 
@@ -96,6 +124,20 @@ public class ProgramData {
         public DataType getParent() {
             return parent;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Function function = (Function) o;
+            return Objects.equals(parent, function.parent) &&
+                    Objects.equals(name, function.name);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(parent, name);
+        }
     }
 
     public static class Var implements DataType {
@@ -126,13 +168,29 @@ public class ProgramData {
         public DataType getParent() {
             return parent;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Var var = (Var) o;
+            return Objects.equals(parent, var.parent) &&
+                    Objects.equals(name, var.name);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(parent, name);
+        }
     }
 
     public final Map<String, Module> modules;
+    public final Map<SymbolData, Set<DataType>> symbolUsages;
     //public final Map<String, Function> externalFunctions;
 
     public ProgramData() {
         modules = new LinkedHashMap<>();
+        symbolUsages = new LinkedHashMap<>();
         //externalFunctions = new HashMap<>();
     }
 

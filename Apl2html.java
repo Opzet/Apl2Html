@@ -16,6 +16,7 @@ public class Apl2html {
 	        return;
         }
 
+        Parser parser;
         if(args.length == 2) {
 	        int indents;
             try {
@@ -24,19 +25,40 @@ public class Apl2html {
                 System.out.println("Incorrect indents input, default will be used ");
                 indents = DEFAULT_INDENTS;
             }
-            parse(args[0], indents);
+            parser = parse(args[0], indents);
         } else
-            parse(args[0], DEFAULT_INDENTS);
+            parser = parse(args[0], DEFAULT_INDENTS);
+
+        if (parser != null) {
+            printSymbolUsagesHtml(parser, args[0]);
+        }
+    }
+
+    private static void printSymbolUsagesHtml(Parser parser, String path) {
+        System.out.print("Creating symbol usages file into _symbols.json ... ");
+
+        String outjs = path + "/output/_symbols.json";
+        Path parentDir = Paths.get(outjs).getParent();
+        try {
+            if (!Files.exists(parentDir))
+                Files.createDirectories(parentDir);
+
+            Files.write(Paths.get(outjs), parser.createSymbolUsages());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("done!");
     }
 
     private static void usage() {
         System.out.println("Usage apl2txt directory [spaces per indent - default "+DEFAULT_INDENTS+"]");
     }
 
-    private static void parse(String path, int indents) {
+    private static Parser parse(String path, int indents) {
         if(!checkPath(path)) {
             System.out.println("Input directory not found!");
-            return;
+            return null;
         }
 
         Parser parser = new Parser(indents);
@@ -73,6 +95,8 @@ public class Apl2html {
 
         System.out.println("Finished");
         System.out.println("------------------------------");
+
+        return parser;
     }
 
     private static boolean checkPath(String path) {

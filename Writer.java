@@ -1,8 +1,10 @@
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -260,21 +262,36 @@ public class Writer implements CanProcessLine {
 
             if (token.getOffset() > 1 &&
                     token.getLine().substring(token.getOffset() - 2, token.getOffset()).equals("..")) {
-                // It's an inheritance
-                // TODO finish me!
+
+                /*// It's an inheritance
+                if (symbolChain.isEmpty())
+                    scope.addAll(resolveInheritanceChain(c.getCurrentClass()));
+
+                else {
+                    SymbolData contextSymbol = findContextSymbol(token, tokens, symbolChain);
+                    if (contextSymbol == null || !(contextSymbol.getType() instanceof ProgramData.Var)) {
+                        symbolChain.clear();
+                        continue;
+                    }
+
+                    if (contextSymbol.getType())
+                }*/
 
                 currentFunction = null;
 
             } else if (token.getOffset() > 0 &&
                     token.getLine().substring(token.getOffset() - 1, token.getOffset()).equals(".")) {
+                // It's a class method call or class variable access
 
                 if (symbolChain.isEmpty())
                     continue;
 
                 SymbolData contextSymbol = findContextSymbol(token, tokens, symbolChain);
 
-                if (contextSymbol == null || !(contextSymbol.getType() instanceof ProgramData.Var))
+                if (contextSymbol == null || !(contextSymbol.getType() instanceof ProgramData.Var)) {
+                    symbolChain.clear();
                     continue;
+                }
 
                 ProgramData.Var var = (ProgramData.Var) contextSymbol.getType();
 
@@ -284,6 +301,7 @@ public class Writer implements CanProcessLine {
             } else {
                 currentClazz = c.getCurrentClass();
                 currentFunction = c.getCurrentClass().functions.get(c.getFnName());
+                symbolChain.clear();
             }
 
             if (currentClazz == null) {
@@ -306,6 +324,9 @@ public class Writer implements CanProcessLine {
 
             symbolChain.add(symbolData);
 
+            ProgramData.Function fn = c.getCurrentClass().functions.get(c.getFnName());
+            Set<ProgramData.DataType> usages = data.symbolUsages.computeIfAbsent(symbolData, e -> new HashSet<>());
+            usages.add(fn);
             replaceToken(symbolData, tokens, i, meta);
         }
     }
@@ -313,12 +334,15 @@ public class Writer implements CanProcessLine {
     private static SymbolData findContextSymbol(Utils.Token token, List<Utils.Token> tokens, List<SymbolData> symbolChain) {
 
         String line = token.getLine();
+
         if (line.charAt(token.getOffset() - 1) != '.') {
             throw new InvalidStateException(". expected at index " + (token.getOffset() - 1) + " in line " + line);
         }
 
+        int startIndex = line.charAt(token.getOffset() - 2) == '.' ? token.getOffset() - 3 : token.getOffset() - 2;
+
         Stack<Character> parenthesis = new Stack<>();
-        for (int i = token.getOffset() - 2; i > 0; --i) {
+        for (int i = startIndex; i > 0; --i) {
             char c = token.getLine().charAt(i);
 
             if (parenthesis.isEmpty()) {
@@ -370,7 +394,10 @@ public class Writer implements CanProcessLine {
         // class vars context
         ProgramData.Var var = clazz.vars.get(symbol);
         if (var != null)
-            return new SymbolData(clazz, var);
+            return new SymbolData(var);
+
+        if (clazz.anonymousInstance)
+            return findVariable((ProgramData.Clazz) clazz.getParent(), data, symbol);
 
         return null;
     }
@@ -379,12 +406,18 @@ public class Writer implements CanProcessLine {
 
         ProgramData.Var var = function.vars.get(symbol);
         if (var != null)
-            return new SymbolData(function.parent, var);
+            return new SymbolData(var);
+
+        if (((ProgramData.Clazz) function.getParent()).anonymousInstance) {
+            SymbolData symbolData = findVariable((ProgramData.Clazz) function.getParent(), data, symbol);
+            if (symbolData != null)
+                return symbolData;
+        }
 
         for (Map.Entry<String, ProgramData.Module> pair: data.modules.entrySet()) {
             var = pair.getValue().vars.get(symbol);
             if (var != null)
-                return new SymbolData(pair.getValue(), var);
+                return new SymbolData(var);
         }
 
         return null;
@@ -393,13 +426,19 @@ public class Writer implements CanProcessLine {
     private static SymbolData findFunction(ProgramData.Clazz clazz, ProgramData data, String symbol) {
 
         ProgramData.Function fn = clazz.functions.get(symbol);
-            if (fn != null)
-                return new SymbolData(clazz, fn);
+        if (fn != null)
+            return new SymbolData(fn);
+
+        if (clazz.anonymousInstance) {
+            SymbolData symbolData = findFunction((ProgramData.Clazz) clazz.getParent(), data, symbol);
+            if (symbolData != null)
+                return symbolData;
+        }
 
         for (Map.Entry<String, ProgramData.Module> pair: data.modules.entrySet()) {
             fn = pair.getValue().functions.get(symbol);
             if (fn != null)
-                return new SymbolData(pair.getValue(), fn);
+                return new SymbolData(fn);
         }
 
         return null;

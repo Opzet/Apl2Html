@@ -1,8 +1,9 @@
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.Stack;
-import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,6 +21,10 @@ public class Parser {
         this.indentSize = indentSize;
 
         programData = new ProgramData();
+    }
+
+    public ProgramData getProgramData() {
+        return programData;
     }
 
     public void read(Module module) {
@@ -47,6 +52,41 @@ public class Parser {
         addFooter(writer);
 
         return writer.getConverted();
+    }
+
+    public List<String> createSymbolUsages() {
+
+        List<String> result = new ArrayList<>();
+        result.add("var symbols = {");
+
+        boolean firstSymbol = true;
+        for (Map.Entry<SymbolData, Set<ProgramData.DataType>> symbol : programData.symbolUsages.entrySet()) {
+
+            String symbolLink = Utils.constructSymbolId(ProgramData.createSymbolParentChildList(symbol.getKey().getType()));
+
+            if (!firstSymbol)
+                result.add(",");
+            else
+                firstSymbol = false;
+
+            result.add("\"" + symbolLink + "\": [");
+
+            boolean firstSource = true;
+            for (ProgramData.DataType dataType : symbol.getValue()) {
+                if (!firstSource)
+                    result.add(",");
+                else
+                    firstSource = false;
+
+                String sourceSymbolLink = Utils.constructRefId(ProgramData.createSymbolParentChildList(dataType));
+                result.add("\"" + sourceSymbolLink + "\"");
+            }
+
+            result.add("]");
+        }
+
+        result.add("}");
+        return result;
     }
 
     private void traverse(CanProcessLine processor, Module module, State initState) {
@@ -150,11 +190,13 @@ public class Parser {
     private void addHeader(Writer writer) {
         writer.getConverted().add("<html>" +
                 "<head>" +
+                "<meta http-equiv=\"Content-Type\" content=\"text/html;charset=windows-1250\">" +
                 "<script\n" +
                 "  src=\"https://code.jquery.com/jquery-2.2.4.min.js\"\n" +
                 "  integrity=\"sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=\"\n" +
                 "  crossorigin=\"anonymous\"></script>" +
-                "<script src='ui/scripts.js'></script>" +
+                "<script type=\"text/javascript\" language=\"javascript\" src='ui/scripts.js'></script>" +
+                "<script type=\"text/javascript\" language=\"javascript\" src=\"_symbols.json\"></script> \n"+
 
                 // BOOTSTRAP
                 "<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css\" " +
@@ -193,23 +235,41 @@ public class Parser {
     }
 
     private static void printClazz(Writer writer, ProgramData.Clazz clazz) {
-        String classId = Utils.constructRefId(ProgramData.createSymbolParentChildList(clazz));
 
-        writer.getConverted().add("<li>" + Utils.constructCollapser(clazz.getName(), "<a href="+classId+">" + clazz.getName() + "</a></li>"));
+        String classRefId = Utils.constructRefId(ProgramData.createSymbolParentChildList(clazz));
+        String classId = Utils.constructSymbolId(ProgramData.createSymbolParentChildList(clazz));
+
+        if (clazz.classes.isEmpty() && clazz.functions.isEmpty() && clazz.vars.isEmpty()) {
+            writer.getConverted().add("<li><a href="+classRefId+">" + clazz.getName() + "</a></li>");
+            return;
+        }
+
+        writer.getConverted().add("<li>" + Utils.constructCollapser(classId, "<a href="+classRefId+">" + clazz.getName() + "</a></li>"));
 
         writer.getConverted().add("<ul>");
 
-        clazz.classes.entrySet().forEach(subClazz -> printClazz(writer, subClazz.getValue()));
+        if (!clazz.classes.isEmpty()) {
+            writer.getConverted().add("<li>Classes:</li>");
+            clazz.classes.entrySet().forEach(subClazz -> printClazz(writer, subClazz.getValue()));
+        }
 
-        clazz.functions.entrySet().forEach(function -> {
-            String functionId = Utils.constructRefId(ProgramData.createSymbolParentChildList(function.getValue()));
-            writer.getConverted().add("<li><a href="+functionId+">" + function.getKey() + "</a></li>");
-        });
+        if (!clazz.functions.isEmpty()) {
+            writer.getConverted().add("<li>Functions:</li>");
+            clazz.functions.entrySet().forEach(function -> {
+                String functionId = Utils.constructRefId(ProgramData.createSymbolParentChildList(function.getValue()));
+                writer.getConverted().add("<li><a href=" + functionId + ">" + function.getKey() + "</a></li>");
+            });
+        }
 
-        clazz.vars.entrySet().forEach(var -> {
-            String varId = Utils.constructRefId(ProgramData.createSymbolParentChildList(var.getValue()));
-            writer.getConverted().add("<li><a href="+varId+">" + var.getKey() + "</a></li>");
-        });
+        if (!clazz.vars.isEmpty()) {
+            writer.getConverted().add("<li>Variables:</li>");
+            clazz.vars.entrySet().forEach(var -> {
+                if (!clazz.classes.containsKey(var.getValue().getName())) {
+                    String varId = Utils.constructRefId(ProgramData.createSymbolParentChildList(var.getValue()));
+                    writer.getConverted().add("<li><a href=" + varId + ">" + var.getKey() + "</a></li>");
+                }
+            });
+        }
 
         writer.getConverted().add("</ul>");
         writer.getConverted().add("</div>"); // close collapser

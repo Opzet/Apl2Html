@@ -23,7 +23,7 @@ public class Reader implements CanProcessLine {
 
         case APPLICATION:
             if (Grammar.Application.CLASS.equals(meta.matchedPattern)) {
-                ProgramData.Clazz c = data.modules.get(context.getModuleName()).addNewClass(meta.groups.get(2));
+                ProgramData.Clazz c = data.modules.get(context.getModuleName()).addNewClass(meta.groups.get(2), false);
                 context.setCurrentClass(c);
             }
             break;
@@ -49,9 +49,15 @@ public class Reader implements CanProcessLine {
             if (Grammar.Class.FUNCTION_DEFINITION.equals(meta.matchedPattern)) {
                 context.getCurrentClass().addNewFunction(meta.groups.get(1));
             } else if (Grammar.Class.VARIABLE_DEFINITION.equals(meta.matchedPattern)) {
-                ProgramData.Clazz clazz = context.getCurrentClass().addNewClass(meta.groups.get(2));
+                ProgramData.Clazz clazz = context.getCurrentClass().addNewClass(meta.groups.get(2), true);
                 context.getCurrentClass().addNewVar(meta.groups.get(2), meta.groups.get(1));
                 context.setCurrentClass(clazz);
+            }
+            break;
+
+        case CLASS_INHERITANCE_DEFINITION:
+            if (Grammar.ClassInheritanceDefinition.CLASS.equals(meta.matchedPattern)) {
+                context.getCurrentClass().setBaseClassType(meta.groups.get(1));
             }
             break;
 

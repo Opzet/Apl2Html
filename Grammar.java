@@ -73,12 +73,13 @@ public class Grammar {
     }
 
     public enum Class implements LinePattern {
+        INHERITED_FROM("^Derived From"),
         FUNCTION_DEFINITION("^Function: ([_\\w]+)"),
         MESSAGE_DEFINITION("^On ([_\\w]+)"),
         VARIABLES("^(Window Variables|Class Variables|Instance Variables)"),
         PARAMETERS("^Window Parameters"),
         MESSAGE_ACTIONS("^Message Actions"),
-        VARIABLE_DEFINITION("^(Radio Button|Group Box|Combo Box|Background Text|Data Field|Check Box|Pushbutton): ([_\\w]+)");
+        VARIABLE_DEFINITION("^(Radio Button|Combo Box|Data Field|Check Box|Pushbutton): ([_\\w]+)");
 
         private final Pattern pattern;
 
@@ -102,6 +103,21 @@ public class Grammar {
         private final Pattern pattern;
 
         FunctionDefinition(String pattern) {
+            this.pattern = Pattern.compile(pattern);
+        }
+
+        @Override
+        public Pattern getPattern() {
+            return pattern;
+        }
+    }
+
+    public enum ClassInheritanceDefinition implements LinePattern {
+        CLASS("^Class: ([_\\w]+)");
+
+        private final Pattern pattern;
+
+        ClassInheritanceDefinition(String pattern) {
             this.pattern = Pattern.compile(pattern);
         }
 

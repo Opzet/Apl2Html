@@ -86,7 +86,9 @@ public enum State {
     CLASS(Grammar.Class.values()) {
         @Override
         public State getNewState (StateContext context, Grammar.LineMeta meta) {
-            if (Grammar.Class.FUNCTION_DEFINITION.equals(meta.matchedPattern)) {
+            if (Grammar.Class.INHERITED_FROM.equals(meta.matchedPattern)) {
+                return CLASS_INHERITANCE_DEFINITION;
+            } else if (Grammar.Class.FUNCTION_DEFINITION.equals(meta.matchedPattern)) {
                 context.setFnName(meta.groups.get(1));
                 return FUNCTION_DEFINITION;
 
@@ -104,6 +106,9 @@ public enum State {
         }
     },
 
+    CLASS_INHERITANCE_DEFINITION(Grammar.FunctionDefinition.values()) {
+    },
+
     VARIABLE_DEFINITION(Grammar.Class.values()) {
         @Override
         public State getNewState (StateContext context, Grammar.LineMeta meta) {
@@ -119,10 +124,18 @@ public enum State {
         @Override
         public State getNewState (StateContext context, Grammar.LineMeta meta) {
             if (Grammar.Class.MESSAGE_DEFINITION.equals(meta.matchedPattern)) {
+                context.setFnName(meta.groups.get(1));
                 return FUNCTION_BODY;
             }
 
             return MESSAGE_ACTIONS;
+        }
+
+        @Override
+        public void closeScope(StateContext context) {
+            // TODO this is not totally good,
+            // because function name should be reset after the function body
+            context.setFnName(null);
         }
     },
 
