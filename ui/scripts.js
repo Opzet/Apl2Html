@@ -1,26 +1,54 @@
 (function ($) {
     $(window).on("load", function() {
+
+      // SYMBOL POPUP
+      // --------------
       $("a.class_def, a.function_def, a.var_def, a.parameter_def").on('click', function(e) {
         var symbolReferences = symbols[e.target.id];
 
         if (!symbolReferences)
           return;
 
-        var symLinks = '<h3>Found usages of: '+e.target.id+'</h3><ul>';
+        e.stopPropagation();
+
+        var symLinks = '<h3>Usages of: '+e.target.id+'</h3><ul>';
         symbolReferences.forEach(function(item, index) {
           symLinks += '<li><a href=\"'+item+'\">'+item+'</a></li>';
         });
         symLinks += '</ul>';
 
+        existingPopup = $('.alert');
         $('<div class="alert alert-success alert-dismissable">'+
             '<button type="button" class="close" ' + 
                     'data-dismiss="alert" aria-hidden="true">' + 
                 '&times;' + 
             '</button>' + 
             symLinks +
-         '</div>').appendTo("#symbolPopup");
+         '</div>').prependTo("#symbolPopup");
+
+        // Prevent events from getting pass .popup
+        $(".alert").on("click", function(e) {
+          e.stopPropagation();
+        });
+
+        hidePopup(existingPopup, 200);
       });
 
+      $("body").on("click", function() {
+        if (!$(".alert").is(":hidden")) {
+          hidePopup($(".alert"), 0);
+        }
+      });
+
+      function hidePopup(element, waitMillis) {
+        setTimeout(function() {
+          element.fadeOut(300, 'linear', function() {
+            element.remove();
+          });
+        }, waitMillis);
+      }
+
+      // SLOW NAVIGATION
       $("a").on('click', function(e) {
     
        // prevent default anchor click behavior
@@ -43,6 +71,6 @@
          });
       });
 
-      $('body').append("<div style=\"position:fixed;bottom:0;left:0;width:100%;\" id=\"symbolPopup\"></div>");
+      $('body').append("<div id=\"symbolPopup\"></div>");
     });
 })(jQuery);

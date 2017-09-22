@@ -2,7 +2,7 @@ body {
     font-family: 'Menlo', 'Inconsolata', Monaco, Consolas, 'Andale Mono', monospace;
     background-color: #202020;
     color: #a9b7c6;
-    font-size: 14px;
+    font-size: 12px;
 }
 
 a:focus, a:hover {
@@ -13,6 +13,14 @@ a:focus, a:hover {
     white-space: pre;
     width: calc(100% - 300px);
     overflow: scroll;
+}
+
+#symbolPopup {
+    z-index: 10;
+    position:fixed;
+    bottom:0;
+    left:10px;
+    width:calc(100% - 320px);
 }
 
 nav {
