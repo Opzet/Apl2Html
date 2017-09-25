@@ -58,7 +58,10 @@ public class Grammar {
         EXTERNAL_FUNCTIONS("^External Functions"),
         LIBRARY_NAME("^Library name: ([_\\w]+)"),
         FUNCTION_DEFINITION("^Function: ([_\\w]+)"),
-        CLASS("^(Form Window|Functional Class|Dialog Box): ([_\\w]+)");
+        CLASS("^(Form Window|Form Window Class|General Window Class|Multiline Field Class|Pushbutton Class|" +
+                "Picture Class|Functional Class|COM Proxy Class|Table Window Class|Child Table Class|" +
+                "Custom Control Class|Data Field Class|Combo Box Class|Column Class|Dialog Box Class|" +
+                "Dialog Box): ([_\\w]+)");
 
         private final Pattern pattern;
 
@@ -74,12 +77,14 @@ public class Grammar {
 
     public enum Class implements LinePattern {
         INHERITED_FROM("^Derived From"),
+        CLASS_TYPE("^Class: ([_\\w]+)"),
         FUNCTION_DEFINITION("^Function: ([_\\w]+)"),
         MESSAGE_DEFINITION("^On ([_\\w]+)"),
         VARIABLES("^(Window Variables|Class Variables|Instance Variables)"),
         PARAMETERS("^Window Parameters"),
         MESSAGE_ACTIONS("^Message Actions"),
-        VARIABLE_DEFINITION("^(Radio Button|Combo Box|Data Field|Check Box|Pushbutton): ([_\\w]+)");
+        VARIABLE_DEFINITION("^(Radio Button|Combo Box|List Box|Data Field|Multiline Field|Spin Field|" +
+                "Check Box|Pushbutton): ([_\\w]+)");
 
         private final Pattern pattern;
 
@@ -113,7 +118,7 @@ public class Grammar {
     }
 
     public enum ClassInheritanceDefinition implements LinePattern {
-        CLASS("^Class: ([_\\w]+)");
+        CLASS_TYPE("^Class: ([_\\w]+)");
 
         private final Pattern pattern;
 

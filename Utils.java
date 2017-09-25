@@ -1,6 +1,8 @@
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 /**
  * @author m4g4
@@ -149,5 +151,15 @@ public class Utils {
         String fullId = "collapse_" + id;
         return "<i class='glyphicon glyphicon-plus' data-toggle='collapse' href='#" + fullId + "'></i>" + line +
                 "<div class='collapse' id='" + fullId + "'>";
+    }
+
+    public static List<Pattern> createPatterns(List<String> lines) throws PatternSyntaxException {
+        List<Pattern> patterns = new ArrayList<>();
+
+        for (String line : lines) {
+            patterns.add(Pattern.compile(line));
+        }
+
+        return patterns;
     }
 }

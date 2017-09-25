@@ -26,7 +26,10 @@ public class Writer implements CanProcessLine {
     }
     
     @Override
-    public void process(StateContext context, Grammar.LineMeta meta) {
+    public void process(StateContext context, Grammar.LineMeta meta, State newState) {
+
+        if (State.IGNORED.equals(newState))
+            return;
 
         meta.line = Utils.htmlEscape(meta.line);
 
@@ -99,6 +102,9 @@ public class Writer implements CanProcessLine {
             replaceSymbols(context, data, meta);
 
             converted.add(build(meta));
+            break;
+
+        case IGNORED:
             break;
 
         default:
@@ -324,9 +330,12 @@ public class Writer implements CanProcessLine {
 
             symbolChain.add(symbolData);
 
+            // add to usages
             ProgramData.Function fn = c.getCurrentClass().functions.get(c.getFnName());
             Set<ProgramData.DataType> usages = data.symbolUsages.computeIfAbsent(symbolData, e -> new HashSet<>());
             usages.add(fn);
+
+            // create a html link from token
             replaceToken(symbolData, tokens, i, meta);
         }
     }

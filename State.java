@@ -1,3 +1,5 @@
+import java.util.Set;
+
 /**
  * @author m4g4
  * @date 24/04/2017
@@ -197,6 +199,8 @@ public enum State {
 
     COMMENT_BLOCK(Grammar.NO_PATTERNS),
 
+    IGNORED(Grammar.NO_PATTERNS),
+
     COLLAPSED(Grammar.NO_PATTERNS);
 
     private Grammar.LinePattern[] grammar;
@@ -210,7 +214,10 @@ public enum State {
         return context.getCurrentState();
     }
 
-    public final State process (StateContext context, Grammar.LineMeta meta) {
+    public final State process (StateContext context, Grammar.LineMeta meta, Set<Grammar.LinePattern> ignoredLines) {
+        if (ignoredLines.contains(meta.matchedPattern))
+            return IGNORED;
+
         if (Grammar.General.COMMENT_BLOCK.equals(meta.matchedPattern)) {
             return COMMENT_BLOCK;
         }

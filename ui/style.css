@@ -21,6 +21,12 @@ a:focus, a:hover {
     bottom:0;
     left:10px;
     width:calc(100% - 320px);
+    max-height: calc(100% - 50px);
+}
+
+#symbolPopup .alert {
+    max-height: 250px;
+    overflow: scroll;
 }
 
 nav {

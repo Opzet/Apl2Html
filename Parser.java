@@ -15,10 +15,12 @@ public class Parser {
     private static Pattern linePattern = Pattern.compile("\\.head ([\\d]+) [+|-] *");
 
     private final int indentSize;
+    private final Set<Grammar.LinePattern> ignoredNodePatterns;
     private final ProgramData programData;
 
-    public Parser(int indentSize) {
+    public Parser(int indentSize, Set<Grammar.LinePattern> ignoredNodePatterns) {
         this.indentSize = indentSize;
+        this.ignoredNodePatterns = ignoredNodePatterns;
 
         programData = new ProgramData();
     }
@@ -136,9 +138,9 @@ public class Parser {
 
             Grammar.LineMeta meta = parseLine(currentState.getGrammar(), line, newIndent, lineNumber);
 
-            State newState = currentState.process(context, meta);
+            State newState = currentState.process(context, meta, ignoredNodePatterns);
 
-            processor.process(context, meta);
+            processor.process(context, meta, newState);
 
             if (currentState != newState) {
                 context.setCurrentState(newState);
@@ -151,6 +153,7 @@ public class Parser {
     private Grammar.LineMeta parseLine(Grammar.LinePattern[] patterns, String lineContent, int lineIndent, int lineNumber) {
 
         List<Grammar.LinePattern> patternList = new ArrayList<>(patterns.length * 2);
+        patternList.addAll(ignoredNodePatterns);
         patternList.addAll(Arrays.asList(patterns));
         patternList.addAll(Arrays.asList(Grammar.General.values()));
 

@@ -17,8 +17,8 @@ public class ProgramData {
     }
 
     public static class Clazz implements DataType {
+        public String classType;
         public String baseClassType;
-        public Clazz baseClass;
         public final Clazz parent;
         public final String name;
         public final Map<String, Function> functions;
@@ -35,11 +35,11 @@ public class ProgramData {
             classes = new LinkedHashMap<>();
         }
 
-        public void setBaseClassType(String name) {
-            this.baseClassType = name;
+        public void setClassType(String name) {
+            this.classType = name;
         }
 
-        public void setBaseClass(String name) {
+        public void setBaseClassType(String name) {
             this.baseClassType = name;
         }
 

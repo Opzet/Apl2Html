@@ -1,43 +1,43 @@
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Apl2html {
 
-    public static int DEFAULT_INDENTS = 4;
-
     public static void main(String[] args) {
-	    if(args.length < 1) {
-	        usage();
-	        return;
+
+        Arguments arguments = Arguments.processArgs(args);
+        if (arguments == null) {
+            usage();
+            return;
         }
 
-        Parser parser;
-        if(args.length == 2) {
-	        int indents;
-            try {
-                indents = Integer.parseInt(args[1]);
-            } catch (NumberFormatException e) {
-                System.out.println("Incorrect indents input, default will be used ");
-                indents = DEFAULT_INDENTS;
-            }
-            parser = parse(args[0], indents);
-        } else
-            parser = parse(args[0], DEFAULT_INDENTS);
+        Parser parser = parse(arguments);
 
         if (parser != null) {
-            printSymbolUsagesHtml(parser, args[0]);
+            printSymbolUsages(parser, arguments.getOutputDir());
         }
     }
 
-    private static void printSymbolUsagesHtml(Parser parser, String path) {
-        System.out.print("Creating symbol usages file into _symbols.json ... ");
+    private static void printSymbolUsages(Parser parser, String path) {
+        System.out.print("Creating symbol usages file _symbols.json ... ");
 
-        String outjs = path + "/output/_symbols.json";
+        String outjs = path + File.separator + "_symbols.json";
         Path parentDir = Paths.get(outjs).getParent();
         try {
             if (!Files.exists(parentDir))
@@ -52,18 +52,24 @@ public class Apl2html {
     }
 
     private static void usage() {
-        System.out.println("Usage apl2txt directory [spaces per indent - default "+DEFAULT_INDENTS+"]");
+        System.out.println("Usage apl2txt directory [-o output dir] [-s spaces per indent] [-i ignored nodes path]");
     }
 
-    private static Parser parse(String path, int indents) {
-        if(!checkPath(path)) {
+    private static Parser parse(Arguments arguments) {
+        if(!checkPath(arguments.getInputDir())) {
             System.out.println("Input directory not found!");
             return null;
         }
 
-        Parser parser = new Parser(indents);
+        Set<Grammar.LinePattern> ignoredNodes = arguments.getIgnoredNodesPath() != null ?
+                readIgnoredNodes(arguments.getIgnoredNodesPath()) : Collections.emptySet();
 
-        List<Module> modules = getAplModules(path);
+        if (ignoredNodes == null)
+            return null;
+
+        Parser parser = new Parser(arguments.getIndent(), ignoredNodes);
+
+        List<Module> modules = getAplModules(arguments.getInputDir());
 
         // Read modules first
         modules.forEach(module -> {
@@ -79,7 +85,7 @@ public class Apl2html {
 
             System.out.print("Writing module " + module.getModuleName() + " ... ");
 
-            String out = path + "/output/" + module.getModuleName() + ".html"; // TODO output folder should be input parameter
+            String out = arguments.getOutputDir() + File.separator + module.getModuleName() + ".html";
             Path parentDir = Paths.get(out).getParent();
             try {
                 if (!Files.exists(parentDir))
@@ -87,7 +93,9 @@ public class Apl2html {
 
                 Files.write(Paths.get(out), parser.convert(module));
             } catch (IOException e) {
-                e.printStackTrace(); // TODO fix me
+                System.out.println("");
+                System.out.println("failed! File: " + out);
+                return;
             }
 
             System.out.println("done! File: " + out);
@@ -97,6 +105,38 @@ public class Apl2html {
         System.out.println("------------------------------");
 
         return parser;
+    }
+
+    private static Set<Grammar.LinePattern> readIgnoredNodes(String file) {
+        List<String> lines = new ArrayList<>();
+
+        String line;
+        try (
+                InputStream fis = new FileInputStream(file);
+                InputStreamReader isr = new InputStreamReader(fis, Charset.forName("UTF-8"));
+                BufferedReader br = new BufferedReader(isr)
+        ) {
+            while ((line = br.readLine()) != null) {
+                lines.add(line);
+            }
+        } catch (IOException e) {
+            System.out.append("Failed reading ignored nodes file: " + file);
+            return null;
+        }
+
+        List<Pattern> ignoredPatterns;
+        try {
+            ignoredPatterns = Utils.createPatterns(lines);
+        } catch (PatternSyntaxException e) {
+            System.out.print("Invalid pattern " + e.getPattern() + " .");
+            return null;
+        }
+
+        Set<Grammar.LinePattern> result = ignoredPatterns.stream()
+                .map(e -> (Grammar.LinePattern) () -> e)
+                .collect(Collectors.toSet());
+
+        return result;
     }
 
     private static boolean checkPath(String path) {

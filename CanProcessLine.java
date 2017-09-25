@@ -4,7 +4,7 @@
  */
 public interface CanProcessLine {
 
-    void process(StateContext context, Grammar.LineMeta meta);
+    void process(StateContext context, Grammar.LineMeta meta, State newState);
 
     void closeScope(StateContext context);
 

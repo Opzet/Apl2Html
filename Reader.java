@@ -11,7 +11,7 @@ public class Reader implements CanProcessLine {
     }
 
     @Override
-    public void process(StateContext context, Grammar.LineMeta meta) {
+    public void process(StateContext context, Grammar.LineMeta meta, State newState) {
 
         boolean parameter = false;
         switch (context.getCurrentState()) {
@@ -46,6 +46,9 @@ public class Reader implements CanProcessLine {
             }
             break;
         case CLASS:
+            if (Grammar.ClassInheritanceDefinition.CLASS_TYPE.equals(meta.matchedPattern)) {
+                context.getCurrentClass().setClassType(meta.groups.get(1));
+            }
             if (Grammar.Class.FUNCTION_DEFINITION.equals(meta.matchedPattern)) {
                 context.getCurrentClass().addNewFunction(meta.groups.get(1));
             } else if (Grammar.Class.VARIABLE_DEFINITION.equals(meta.matchedPattern)) {
@@ -56,7 +59,7 @@ public class Reader implements CanProcessLine {
             break;
 
         case CLASS_INHERITANCE_DEFINITION:
-            if (Grammar.ClassInheritanceDefinition.CLASS.equals(meta.matchedPattern)) {
+            if (Grammar.ClassInheritanceDefinition.CLASS_TYPE.equals(meta.matchedPattern)) {
                 context.getCurrentClass().setBaseClassType(meta.groups.get(1));
             }
             break;
